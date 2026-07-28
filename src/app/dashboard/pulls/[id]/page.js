@@ -2,15 +2,16 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+import Header from "@/components/layout/Header";
 
-const STATUS_COLORS = {
-  open: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", dot: "bg-emerald-500", label: "Open" },
-  merged: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200", dot: "bg-purple-500", label: "Merged" },
-  closed: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200", dot: "bg-red-400", label: "Closed" },
-  changes_requested: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", dot: "bg-amber-500", label: "Changes Requested" },
-  approved: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", dot: "bg-blue-500", label: "Approved" },
+const STATUS_CONFIG = {
+  open: { bg: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500", label: "Open" },
+  approved: { bg: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500", label: "Approved" },
+  changes_requested: { bg: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-500", label: "Changes Requested" },
+  merged: { bg: "bg-purple-50 text-purple-700 border-purple-200", dot: "bg-purple-500", label: "Merged" },
+  closed: { bg: "bg-red-50 text-red-700 border-red-200", dot: "bg-red-400", label: "Closed" },
 };
 
 function timeAgo(dateString) {
@@ -51,8 +52,8 @@ function VisualDiffSlider({ beforeUrl, afterUrl }) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden rounded-lg border border-[#e0e0e0] select-none cursor-col-resize"
-      style={{ aspectRatio: "16/9", background: "#f0f0f0" }}
+      className="relative w-full overflow-hidden rounded-xl border border-[#e0e0e0] select-none cursor-col-resize shadow-xs"
+      style={{ aspectRatio: "16/9", background: "#f0f0f2" }}
       onMouseMove={onMouseMove}
       onMouseUp={() => setDragging(false)}
       onMouseLeave={() => setDragging(false)}
@@ -64,13 +65,15 @@ function VisualDiffSlider({ beforeUrl, afterUrl }) {
         {beforeUrl ? (
           <img src={beforeUrl} alt="Before" className="w-full h-full object-contain bg-[#f8f8f8]" draggable={false} />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-[#bbb] flex-col gap-2">
+          <div className="w-full h-full flex items-center justify-center text-[#999999] flex-col gap-2">
             <span className="material-symbols-outlined text-[32px] opacity-40">image</span>
-            <span className="text-[12px]">No snapshot available for base branch</span>
+            <span className="text-[12px] font-medium">No snapshot available for base branch (main)</span>
           </div>
         )}
-        <div className="absolute inset-0 flex items-end p-3">
-          <span className="bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded backdrop-blur-sm">BEFORE · main</span>
+        <div className="absolute inset-0 flex items-end p-3 pointer-events-none">
+          <span className="bg-black/70 text-white text-[10px] font-bold px-2.5 py-1 rounded-md backdrop-blur-sm">
+            BEFORE · main
+          </span>
         </div>
       </div>
 
@@ -82,13 +85,15 @@ function VisualDiffSlider({ beforeUrl, afterUrl }) {
         {afterUrl ? (
           <img src={afterUrl} alt="After" className="w-full h-full object-contain bg-[#f8f8f8]" draggable={false} />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-[#bbb] flex-col gap-2">
+          <div className="w-full h-full flex items-center justify-center text-[#999999] flex-col gap-2">
             <span className="material-symbols-outlined text-[32px] opacity-40">image</span>
-            <span className="text-[12px]">No snapshot available for this branch</span>
+            <span className="text-[12px] font-medium">No snapshot available for compare branch</span>
           </div>
         )}
-        <div className="absolute inset-0 flex items-end justify-end p-3">
-          <span className="bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded backdrop-blur-sm">AFTER · feature</span>
+        <div className="absolute inset-0 flex items-end justify-end p-3 pointer-events-none">
+          <span className="bg-black/70 text-white text-[10px] font-bold px-2.5 py-1 rounded-md backdrop-blur-sm">
+            AFTER · feature branch
+          </span>
         </div>
       </div>
 
@@ -109,14 +114,14 @@ function VisualDiffSlider({ beforeUrl, afterUrl }) {
       </div>
 
       {/* Percentage indicator */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-black/60 text-white text-[10px] font-mono px-2 py-0.5 rounded backdrop-blur-sm pointer-events-none">
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-black/70 text-white text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full backdrop-blur-sm pointer-events-none">
         {Math.round(sliderX)}%
       </div>
     </div>
   );
 }
 
-// ─── Comment Thread ──────────────────────────────────────────────────────────
+// ─── Comment Thread Component ────────────────────────────────────────────────
 function CommentThread({ comments, prId, user, onNewComment }) {
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -149,48 +154,56 @@ function CommentThread({ comments, prId, user, onNewComment }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Existing comments */}
-      {comments.map((c) => (
-        <div key={c.id} className="flex gap-3">
-          <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5">
-            {(c.author_name || "?").slice(0, 2).toUpperCase()}
-          </div>
-          <div className="flex-grow">
-            <div className="bg-white border border-[#e8e8e8] rounded-lg overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between px-4 py-2 bg-[#fafafa] border-b border-[#f0f0f0]">
-                <span className="text-[12px] font-semibold text-black">{c.author_name || "Unknown"}</span>
-                <span className="text-[11px] text-[#888]">{timeAgo(c.created_at)}</span>
+      {/* List of comments */}
+      {comments.length === 0 ? (
+        <div className="bg-white/80 border border-[#e5e5e5]/60 rounded-xl p-8 text-center text-[#888888] text-[13px]">
+          No comments yet on this pull request. Be the first to start the discussion!
+        </div>
+      ) : (
+        comments.map((c) => (
+          <div key={c.id} className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-xs">
+              {(c.author_name || "?").slice(0, 2).toUpperCase()}
+            </div>
+            <div className="grow bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl overflow-hidden shadow-xs">
+              <div className="flex items-center justify-between px-4 py-2 bg-[#f8f8fa] border-b border-[#e5e5e5]/60">
+                <span className="text-[12px] font-bold text-black">{c.author_name || "Designer"}</span>
+                <span className="text-[11px] text-[#888888]">{timeAgo(c.created_at)}</span>
               </div>
-              <div className="px-4 py-3 text-[13px] text-black leading-relaxed whitespace-pre-wrap">
+              <div className="p-4 text-[13px] text-black leading-relaxed whitespace-pre-wrap font-sans">
                 {c.body}
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))
+      )}
 
-      {/* New comment form */}
-      <form onSubmit={handleSubmit} className="flex gap-3">
-        <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5">
+      {/* New comment input box */}
+      <form onSubmit={handleSubmit} className="flex items-start gap-3 pt-2">
+        <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-xs">
           {user?.email ? user.email.slice(0, 2).toUpperCase() : "U"}
         </div>
-        <div className="flex-grow bg-white border border-[#e0e0e0] rounded-lg overflow-hidden shadow-sm focus-within:border-black transition-colors">
+        <div className="grow bg-white/80 backdrop-blur-md border border-[#e0e0e0] focus-within:border-black rounded-xl overflow-hidden shadow-xs transition-colors">
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="Leave a comment…"
-            rows={3}
-            className="w-full px-4 py-3 text-[13px] text-black placeholder-[#bbb] outline-none resize-none font-sans"
+            placeholder="Leave a review comment or ask questions about the design tokens..."
+            rows={4}
+            className="w-full p-4 text-[13px] text-black placeholder-[#999999] outline-none resize-none font-sans leading-relaxed"
           />
-          <div className="flex items-center justify-between px-4 py-2 bg-[#fafafa] border-t border-[#f0f0f0]">
-            <span className="text-[10px] text-[#aaa]">Markdown supported</span>
+          <div className="flex items-center justify-between px-4 py-2.5 bg-[#f8f8fa] border-t border-[#e5e5e5]/60">
+            <span className="text-[11px] text-[#888888]">Markdown formatting supported</span>
             <button
               type="submit"
               disabled={!body.trim() || submitting}
-              className="bg-black text-white text-[11px] font-semibold px-3 py-1.5 rounded hover:bg-black/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
+              className="bg-black text-white font-bold text-[12px] px-4 py-1.5 rounded-lg hover:bg-black/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5 shadow-xs"
             >
-              {submitting ? <span className="material-symbols-outlined animate-spin text-[13px]">progress_activity</span> : null}
-              Comment
+              {submitting && (
+                <span className="material-symbols-outlined animate-spin text-[14px]">
+                  progress_activity
+                </span>
+              )}
+              Submit Comment
             </button>
           </div>
         </div>
@@ -199,273 +212,115 @@ function CommentThread({ comments, prId, user, onNewComment }) {
   );
 }
 
-// ─── Review Panel ────────────────────────────────────────────────────────────
-function ReviewPanel({ prId, user, pr, reviews, onReviewSubmitted, onMerge }) {
-  const [action, setAction] = useState("comment");
-  const [body, setBody] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [merging, setMerging] = useState(false);
-
-  const hasApproval = reviews.some(r => r.action === "approve");
-  const latestReview = reviews[reviews.length - 1];
-  const canMerge = pr.status === "approved" || (pr.status === "open" && hasApproval);
-  const isAuthor = user?.id === pr.author_id;
-  const isMerged = pr.status === "merged";
-  const isClosed = pr.status === "closed";
-
-  async function handleReviewSubmit(e) {
-    e.preventDefault();
-    if (!user) return;
-    setSubmitting(true);
-    try {
-      const { data, error } = await supabase
-        .from("dvc_pr_reviews")
-        .insert({
-          pr_id: prId,
-          reviewer_id: user.id,
-          reviewer_name: user.email,
-          action,
-          body: body.trim(),
-        })
-        .select()
-        .single();
-      if (error) throw error;
-
-      // Update PR status based on review action
-      let newStatus = pr.status;
-      if (action === "approve") newStatus = "approved";
-      if (action === "request_changes") newStatus = "changes_requested";
-
-      if (newStatus !== pr.status) {
-        await supabase.from("dvc_pull_requests").update({ status: newStatus }).eq("id", prId);
-      }
-
-      // Notify PR author
-      if (user.id !== pr.author_id) {
-        await supabase.from("dvc_notifications").insert({
-          user_id: pr.author_id,
-          type: action,
-          title: action === "approve" ? "Pull request approved" : action === "request_changes" ? "Changes requested" : "New review comment",
-          body: `${user.email} ${action === "approve" ? "approved" : action === "request_changes" ? "requested changes on" : "commented on"} "${pr.title}"`,
-          pr_id: prId,
-          read: false,
-        });
-      }
-
-      setBody("");
-      onReviewSubmitted(data, newStatus);
-    } catch (e) {
-      console.error("Review error:", e.message);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleMerge() {
-    setMerging(true);
-    try {
-      await supabase.from("dvc_pull_requests").update({
-        status: "merged",
-        merged_at: new Date().toISOString(),
-        merged_by: user.email,
-      }).eq("id", prId);
-
-      // Notify all reviewers
-      if (reviews.length > 0) {
-        await supabase.from("dvc_notifications").insert(
-          reviews.map(r => ({
-            user_id: r.reviewer_id,
-            type: "merged",
-            title: "Pull request merged",
-            body: `"${pr.title}" was merged into ${pr.target_branch || "main"}.`,
-            pr_id: prId,
-            read: false,
-          }))
-        );
-      }
-      onMerge();
-    } catch (e) {
-      console.error("Merge error:", e.message);
-    } finally {
-      setMerging(false);
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-4">
-      {/* Merge Box */}
-      {!isMerged && !isClosed && (
-        <div className={`border rounded-lg p-4 flex flex-col gap-3 ${
-          canMerge
-            ? "bg-emerald-50 border-emerald-200"
-            : "bg-[#f9f9f9] border-[#e8e8e8]"
-        }`}>
-          <div className="flex items-center gap-2">
-            <span className={`material-symbols-outlined text-[18px] ${canMerge ? "text-emerald-600" : "text-[#aaa]"}`}>
-              {canMerge ? "check_circle" : "pending"}
-            </span>
-            <span className={`text-[13px] font-semibold ${canMerge ? "text-emerald-700" : "text-[#666]"}`}>
-              {canMerge ? "This pull request is ready to merge" : "Awaiting review approval"}
-            </span>
-          </div>
-          {!canMerge && (
-            <p className="text-[11px] text-[#888]">At least one reviewer must approve before merging.</p>
-          )}
-          <button
-            onClick={handleMerge}
-            disabled={!canMerge || merging}
-            className="flex items-center justify-center gap-2 bg-purple-600 text-white font-semibold text-[12px] px-4 py-2.5 rounded hover:bg-purple-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer w-full"
-          >
-            {merging ? (
-              <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
-            ) : (
-              <span className="material-symbols-outlined text-[16px]">merge</span>
-            )}
-            {merging ? "Merging…" : "Merge Pull Request"}
-          </button>
-        </div>
-      )}
-
-      {isMerged && (
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 flex items-center gap-3">
-          <span className="material-symbols-outlined text-[20px] text-purple-600">check_circle</span>
-          <div>
-            <p className="text-[13px] font-semibold text-purple-700">Pull request merged</p>
-            <p className="text-[11px] text-purple-500 mt-0.5">Changes have been merged into {pr.target_branch || "main"}.</p>
-          </div>
-        </div>
-      )}
-
-      {/* Review Summary */}
-      {reviews.length > 0 && (
-        <div className="bg-white border border-[#e8e8e8] rounded-lg p-4 flex flex-col gap-3">
-          <h3 className="text-[12px] font-bold text-black uppercase tracking-wider">Reviews ({reviews.length})</h3>
-          <div className="flex flex-col gap-2">
-            {reviews.map((r) => {
-              const actionIcon = r.action === "approve" ? "check_circle" : r.action === "request_changes" ? "change_circle" : "chat";
-              const actionColor = r.action === "approve" ? "text-emerald-600" : r.action === "request_changes" ? "text-amber-600" : "text-[#888]";
-              const actionLabel = r.action === "approve" ? "Approved" : r.action === "request_changes" ? "Requested changes" : "Commented";
-              return (
-                <div key={r.id} className="flex items-start gap-2">
-                  <span className={`material-symbols-outlined text-[16px] mt-0.5 ${actionColor}`}>{actionIcon}</span>
-                  <div>
-                    <span className="text-[12px] font-semibold text-black">{r.reviewer_name}</span>
-                    <span className="text-[11px] text-[#888] ml-1.5">{actionLabel} · {timeAgo(r.created_at)}</span>
-                    {r.body && <p className="text-[11px] text-[#555] mt-1 leading-relaxed">{r.body}</p>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Submit Review form */}
-      {!isMerged && !isClosed && (
-        <form onSubmit={handleReviewSubmit} className="bg-white border border-[#e0e0e0] rounded-lg overflow-hidden shadow-sm">
-          <div className="px-4 py-3 border-b border-[#f0f0f0] bg-[#fafafa]">
-            <h3 className="text-[12px] font-bold text-black">Submit a Review</h3>
-          </div>
-          <div className="p-4 flex flex-col gap-3">
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Leave your review feedback…"
-              rows={4}
-              className="w-full px-3 py-2.5 border border-[#e0e0e0] rounded text-[12px] text-black placeholder-[#bbb] outline-none resize-none focus:border-black transition-colors font-sans"
-            />
-
-            <div className="flex flex-col gap-2">
-              {[
-                { value: "comment", icon: "chat_bubble", label: "Comment", desc: "General feedback" },
-                { value: "approve", icon: "check_circle", label: "Approve", desc: "Ready to merge" },
-                { value: "request_changes", icon: "change_circle", label: "Request Changes", desc: "Must be addressed" },
-              ].map((opt) => (
-                <label key={opt.value} className="flex items-start gap-2.5 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="review-action"
-                    value={opt.value}
-                    checked={action === opt.value}
-                    onChange={() => setAction(opt.value)}
-                    className="mt-0.5 cursor-pointer accent-black"
-                  />
-                  <div>
-                    <span className="text-[12px] font-semibold text-black flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[13px]">{opt.icon}</span>
-                      {opt.label}
-                    </span>
-                    <span className="text-[10px] text-[#888]">{opt.desc}</span>
-                  </div>
-                </label>
-              ))}
-            </div>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-black text-white text-[12px] font-semibold py-2.5 rounded hover:bg-black/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              {submitting ? <span className="material-symbols-outlined animate-spin text-[14px]">progress_activity</span> : null}
-              Submit Review
-            </button>
-          </div>
-        </form>
-      )}
-    </div>
-  );
-}
-
-// ─── Main PR Detail Page ─────────────────────────────────────────────────────
+// ─── Main PR Detail Page Component ───────────────────────────────────────────
 export default function PRDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const prId = params.id;
+  const rawId = params.id;
 
+  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
   const [pr, setPr] = useState(null);
   const [comments, setComments] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [commits, setCommits] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("conversation");
+  const [activeTab, setActiveTab] = useState("conversation"); // "conversation" | "diff" | "files"
 
   // Visual diff state
   const [beforeSnapshot, setBeforeSnapshot] = useState(null);
   const [afterSnapshot, setAfterSnapshot] = useState(null);
-  const [diffMode, setDiffMode] = useState("slider"); // "slider" | "side-by-side"
 
-  // Text diff state
-  const [textDiff, setTextDiff] = useState(null);
-  const [loadingTextDiff, setLoadingTextDiff] = useState(false);
+  // Review form state
+  const [reviewAction, setReviewAction] = useState("comment");
+  const [reviewBody, setReviewBody] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [merging, setMerging] = useState(false);
 
-  useEffect(() => {
-    async function init() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/login"); return; }
-      setUser(user);
-      await loadAll(user);
+  async function fetchNotifications(userId) {
+    try {
+      const { data } = await supabase
+        .from("dvc_notifications")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setNotifications(data || []);
+    } catch (e) {
+      setNotifications([]);
     }
-    init();
-  }, [prId, router]);
+  }
 
-  async function loadAll(currentUser) {
+  async function markAllRead() {
+    if (!user) return;
+    await supabase
+      .from("dvc_notifications")
+      .update({ read: true })
+      .eq("user_id", user.id)
+      .eq("read", false);
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  }
+
+  async function markNotifRead(notifId) {
+    await supabase.from("dvc_notifications").update({ read: true }).eq("id", notifId);
+    setNotifications((prev) => prev.map((n) => (n.id === notifId ? { ...n, read: true } : n)));
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
+
+  async function loadAll(id, currentUser) {
     setLoading(true);
     try {
-      // Load PR
-      const { data: prData, error: prErr } = await supabase
-        .from("dvc_pull_requests")
-        .select("*")
-        .eq("id", prId)
-        .single();
-      if (prErr) throw prErr;
+      // 1. Fetch PR by exact ID or short hex prefix (e.g. e94881)
+      let prData = null;
+
+      if (id.length === 36) {
+        const { data: directData } = await supabase
+          .from("dvc_pull_requests")
+          .select("*")
+          .eq("id", id)
+          .single();
+        if (directData) prData = directData;
+      }
+
+      if (!prData) {
+        const { data: prList } = await supabase
+          .from("dvc_pull_requests")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (prList) {
+          prData = prList.find(
+            (p) =>
+              p.id?.toString() === id ||
+              p.id?.toString().toLowerCase().startsWith(id.toLowerCase()) ||
+              p.id?.toString().slice(0, 6).toLowerCase() === id.toLowerCase()
+          );
+        }
+      }
+
+      if (!prData) {
+        setLoading(false);
+        return;
+      }
       setPr(prData);
+
+      // Clean browser address bar to show 6-character short ID instead of 36-char UUID
+      if (id.length > 8 && typeof window !== "undefined") {
+        window.history.replaceState(null, "", `/dashboard/pulls/${prData.id.slice(0, 6)}`);
+      }
 
       // Load comments
       const { data: commentsData } = await supabase
         .from("dvc_pr_comments")
         .select("*")
-        .eq("pr_id", prId)
+        .eq("pr_id", prData.id)
         .order("created_at", { ascending: true });
       setComments(commentsData || []);
 
@@ -473,22 +328,21 @@ export default function PRDetailPage() {
       const { data: reviewsData } = await supabase
         .from("dvc_pr_reviews")
         .select("*")
-        .eq("pr_id", prId)
+        .eq("pr_id", prData.id)
         .order("created_at", { ascending: true });
       setReviews(reviewsData || []);
 
-      // Load related commits for text diff
-      if (prData?.file_key) {
+      // Load related commits
+      if (prData.file_key) {
         const { data: commitData } = await supabase
           .from("dvc_commits")
-          .select("id, parent_id, message, timestamp, author, nodes, snapshot_url")
+          .select("id, file_key, message, author, timestamp, node_count, snapshot_url")
           .eq("file_key", prData.file_key)
           .order("timestamp", { ascending: false })
-          .limit(5);
+          .limit(6);
         setCommits(commitData || []);
 
-        // Set visual snapshots from latest commits
-        const withSnapshot = (commitData || []).filter(c => c.snapshot_url);
+        const withSnapshot = (commitData || []).filter((c) => c.snapshot_url);
         if (withSnapshot.length >= 2) {
           setAfterSnapshot(withSnapshot[0].snapshot_url);
           setBeforeSnapshot(withSnapshot[1].snapshot_url);
@@ -496,453 +350,492 @@ export default function PRDetailPage() {
           setAfterSnapshot(withSnapshot[0].snapshot_url);
         }
       }
+
+      await fetchNotifications(currentUser.id);
     } catch (e) {
-      console.error("Load error:", e.message);
+      console.error("PR Load error:", e.message);
     } finally {
       setLoading(false);
     }
   }
 
-  function flattenNodes(list, map = {}) {
-    for (const n of list) {
-      map[n.id] = n;
-      if (n.children) flattenNodes(n.children, map);
+  useEffect(() => {
+    async function init() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+      setUser(user);
+      await loadAll(rawId, user);
     }
-    return map;
-  }
+    init();
+  }, [rawId, router]);
 
-  function getChangedProps(prev, curr) {
-    const props = ["name", "visible", "opacity", "x", "y", "width", "height", "fills", "strokes", "strokeWeight", "cornerRadius", "effects", "characters", "fontSize", "fontName"];
-    return props.filter(p => JSON.stringify(prev[p]) !== JSON.stringify(curr[p]));
-  }
-
-  async function loadTextDiff() {
-    if (!commits.length) return;
-    setLoadingTextDiff(true);
+  async function handleReviewSubmit(e) {
+    e.preventDefault();
+    if (!user || !pr) return;
+    setReviewSubmitting(true);
     try {
-      const curr = commits[0];
-      const prev = commits[1];
-      if (!curr) return;
+      const { data, error } = await supabase
+        .from("dvc_pr_reviews")
+        .insert({
+          pr_id: pr.id,
+          reviewer_id: user.id,
+          reviewer_name: user.email,
+          action: reviewAction,
+          body: reviewBody.trim(),
+        })
+        .select()
+        .single();
+      if (error) throw error;
 
-      const { data: currRows } = await supabase.from("dvc_commits").select("nodes").eq("id", curr.id);
-      const currentMap = flattenNodes((currRows?.[0]?.nodes) || []);
-      let parentMap = {};
-      if (prev) {
-        const { data: prevRows } = await supabase.from("dvc_commits").select("nodes").eq("id", prev.id);
-        parentMap = flattenNodes((prevRows?.[0]?.nodes) || []);
+      // Update PR status
+      let newStatus = pr.status;
+      if (reviewAction === "approve") newStatus = "approved";
+      if (reviewAction === "request_changes") newStatus = "changes_requested";
+
+      if (newStatus !== pr.status) {
+        await supabase.from("dvc_pull_requests").update({ status: newStatus }).eq("id", pr.id);
+        setPr((prev) => ({ ...prev, status: newStatus }));
       }
 
-      const added = [], removed = [], modified = [];
-      Object.keys(currentMap).forEach(id => {
-        const c = currentMap[id], p = parentMap[id];
-        if (!p) added.push(c);
-        else if (p.hash !== c.hash) modified.push({ ...c, changedProps: getChangedProps(p, c) });
-      });
-      Object.keys(parentMap).forEach(id => {
-        if (!currentMap[id]) removed.push(parentMap[id]);
-      });
-
-      setTextDiff({ added, removed, modified });
+      setReviews((prev) => [...prev, data]);
+      setReviewBody("");
     } catch (e) {
-      console.error("Text diff error:", e);
+      console.error("Review submit error:", e.message);
     } finally {
-      setLoadingTextDiff(false);
+      setReviewSubmitting(false);
     }
   }
 
-  useEffect(() => {
-    if (activeTab === "files" && !textDiff && commits.length > 0) {
-      loadTextDiff();
+  async function handleMerge() {
+    if (!pr || !user) return;
+    setMerging(true);
+    try {
+      await supabase
+        .from("dvc_pull_requests")
+        .update({
+          status: "merged",
+          merged_at: new Date().toISOString(),
+          merged_by: user.email,
+        })
+        .eq("id", pr.id);
+
+      setPr((prev) => ({
+        ...prev,
+        status: "merged",
+        merged_at: new Date().toISOString(),
+        merged_by: user.email,
+      }));
+    } catch (e) {
+      console.error("Merge error:", e.message);
+    } finally {
+      setMerging(false);
     }
-  }, [activeTab, commits]);
+  }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center font-sans">
-        <div className="flex flex-col items-center gap-3">
-          <span className="material-symbols-outlined animate-spin text-[28px] text-black">progress_activity</span>
-          <span className="text-[13px] text-[#666]">Loading pull request…</span>
-        </div>
+      <div className="grow flex flex-col min-w-0">
+        <Header
+          user={user}
+          notifications={notifications}
+          isNotifOpen={isNotifOpen}
+          setIsNotifOpen={setIsNotifOpen}
+          markAllRead={markAllRead}
+          markNotifRead={markNotifRead}
+          setIsSearchOpen={setIsSearchOpen}
+          onSignOut={handleSignOut}
+        />
+        <main className="grow p-6 md:p-8 w-full max-w-[1600px] mx-auto flex flex-col items-center justify-center min-h-125">
+          <div className="flex flex-col items-center gap-3">
+            <span className="material-symbols-outlined animate-spin text-[32px] text-black">
+              progress_activity
+            </span>
+            <p className="text-[13px] text-[#666666] font-medium">Loading Pull Request Details...</p>
+          </div>
+        </main>
       </div>
     );
   }
 
   if (!pr) {
     return (
-      <div className="min-h-screen flex items-center justify-center font-sans">
-        <div className="text-center">
-          <p className="text-[16px] font-semibold text-black mb-2">Pull request not found</p>
-          <Link href="/dashboard/pulls" className="text-[13px] text-[#666] hover:underline">← Back to pull requests</Link>
-        </div>
+      <div className="grow flex flex-col min-w-0">
+        <Header
+          user={user}
+          notifications={notifications}
+          isNotifOpen={isNotifOpen}
+          setIsNotifOpen={setIsNotifOpen}
+          markAllRead={markAllRead}
+          markNotifRead={markNotifRead}
+          setIsSearchOpen={setIsSearchOpen}
+          onSignOut={handleSignOut}
+        />
+        <main className="grow p-8 max-w-[1600px] w-full mx-auto flex flex-col items-center justify-center gap-4 text-center">
+          <span className="material-symbols-outlined text-[48px] text-[#888888]">error_outline</span>
+          <h1 className="text-[20px] font-bold text-black">Pull Request Not Found</h1>
+          <p className="text-[13px] text-[#666666]">The pull request with ID #{rawId.slice(0, 8)} does not exist or was deleted.</p>
+          <Link href="/dashboard/pulls" className="mt-2 bg-black text-white font-bold text-[12px] px-4 py-2 rounded-lg">
+            Back to Pull Requests
+          </Link>
+        </main>
       </div>
     );
   }
 
-  const st = STATUS_COLORS[pr.status] || STATUS_COLORS.open;
+  const shortId = pr.id.slice(0, 6);
+  const statusCfg = STATUS_CONFIG[pr.status] || STATUS_CONFIG.open;
+  const hasApproval = reviews.some((r) => r.action === "approve");
+  const canMerge = pr.status === "approved" || (pr.status === "open" && hasApproval);
+  const isMerged = pr.status === "merged";
 
   return (
-    <div className="text-black font-sans min-h-screen flex flex-row relative bg-transparent">
-      {/* Background Video */}
-      <video autoPlay loop muted playsInline className="fixed inset-0 w-full h-full object-cover z-0 pointer-events-none">
-        <source src="/From%20Klickpin.com-%20Stylish%20Pinterest%20marketing%20ideas%20that%20feel%20fresh%20elevated%20and%20surprisingly%20easy%20to%20recreate%20at%20home%20for%20busy%20people%20who%20still.mp4" type="video/mp4" />
-      </video>
+    <div className="grow flex flex-col min-w-0">
+      {/* Top Header */}
+      <Header
+        user={user}
+        notifications={notifications}
+        isNotifOpen={isNotifOpen}
+        setIsNotifOpen={setIsNotifOpen}
+        markAllRead={markAllRead}
+        markNotifRead={markNotifRead}
+        setIsSearchOpen={setIsSearchOpen}
+        onSignOut={handleSignOut}
+      />
 
-      {/* Sidebar */}
-      <aside className="w-[240px] bg-white/70 backdrop-blur-lg border-r border-[#d5d5d5]/40 flex flex-col flex-shrink-0 z-10 fixed top-0 bottom-0 left-0">
-        <div className="p-6 border-b border-[#d5d5d5]/40 flex items-center gap-4">
-          <div className="w-10 h-10 bg-white/80 border border-[#c5c5c5]/40 rounded flex items-center justify-center">
-            <span className="material-symbols-outlined text-[20px] text-black">menu_book</span>
+      {/* Main Content Area */}
+      <main className="grow p-6 md:p-8 w-full max-w-[1600px] mx-auto flex flex-col gap-6">
+        {/* Breadcrumbs & Title Banner */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-[12px] text-[#666666] font-medium">
+            <Link href="/dashboard" className="hover:text-black transition-colors">
+              Dashboard
+            </Link>
+            <span>/</span>
+            <Link href="/dashboard/pulls" className="hover:text-black transition-colors">
+              Pull Requests
+            </Link>
+            <span>/</span>
+            <span className="font-mono font-bold text-black">#{shortId}</span>
           </div>
-          <div className="flex flex-col truncate">
-            <span className="text-[13px] font-bold text-black tracking-tight">GitDesign</span>
-            <span className="text-[11px] text-[#777777] font-medium">Design Systems</span>
+
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-[24px] md:text-[28px] font-sans tracking-tight text-black font-bold leading-tight">
+                  {pr.title}
+                </h1>
+                <span className="text-[#888888] font-mono text-[20px] font-normal">
+                  #{shortId}
+                </span>
+                <span
+                  className={`text-[12px] font-bold px-3 py-1 rounded-full border flex items-center gap-1.5 shrink-0 ${statusCfg.bg}`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${statusCfg.dot}`} />
+                  {statusCfg.label}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 text-[12px] text-[#666666] flex-wrap">
+                <span className="font-bold text-black">{pr.author}</span>
+                <span>wants to merge</span>
+                <span className="bg-white border border-[#c5c5c5] font-mono text-[11px] font-bold text-black px-2 py-0.5 rounded">
+                  {pr.source_branch || "feature"}
+                </span>
+                <span>into</span>
+                <span className="bg-white border border-[#c5c5c5] font-mono text-[11px] font-bold text-black px-2 py-0.5 rounded">
+                  {pr.target_branch || "main"}
+                </span>
+                <span>&middot;</span>
+                <span>opened {timeAgo(pr.created_at)}</span>
+              </div>
+            </div>
+
+            <Link
+              href="/dashboard/pulls/new"
+              className="bg-black text-white hover:bg-black/90 font-bold text-[12px] px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs shrink-0 self-start md:self-auto cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">add</span>
+              New PR
+            </Link>
           </div>
         </div>
-        <nav className="flex-grow py-4">
+
+        {/* Navigation Tabs Bar */}
+        <div className="border-b border-[#e5e5e5]/60 flex items-center gap-2">
           {[
-            { id: "Dashboard", icon: "grid_view", href: "/dashboard" },
-            { id: "Repositories", icon: "folder_open", href: "/dashboard" },
-            { id: "Branches", icon: "call_split", href: "/dashboard" },
-            { id: "Pull Requests", icon: "merge_type", href: "/dashboard/pulls" },
-            { id: "Activity", icon: "history", href: "/dashboard" },
-          ].map((tab) => (
-            <Link
-              key={tab.id}
-              href={tab.href}
-              className={`w-full flex items-center gap-4 px-6 py-[10px] text-[13px] text-left transition-colors relative ${
-                tab.id === "Pull Requests"
-                  ? "bg-white/80 backdrop-blur-sm font-bold text-black border-l-[3px] border-black"
-                  : "text-[#555555] hover:bg-[#e2e2e2]/40 hover:text-black"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
-              {tab.id}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-
-      {/* Main */}
-      <div className="flex-grow flex flex-col min-w-0 z-10 ml-[240px]">
-        {/* Header */}
-        <header className="bg-white/70 backdrop-blur-lg border-b border-[#e5e5e5]/40 h-16 flex items-center justify-between px-8 sticky top-0 z-20">
-          <div className="flex items-center gap-2 text-[14px] min-w-0">
-            <Link href="/dashboard" className="font-bold text-black hover:opacity-70 transition-opacity flex-shrink-0">GitDesign</Link>
-            <span className="text-[#c5c5c5] flex-shrink-0">/</span>
-            <Link href="/dashboard/pulls" className="text-[#555] hover:text-black transition-colors flex-shrink-0">Pull Requests</Link>
-            <span className="text-[#c5c5c5] flex-shrink-0">/</span>
-            <span className="font-semibold text-black truncate">#{prId?.toString().slice(0, 6)} {pr.title}</span>
-          </div>
-          <button
-            onClick={() => { supabase.auth.signOut(); router.push("/login"); }}
-            className="w-8 h-8 rounded-full border border-[#c5c5c5]/40 flex items-center justify-center text-[12px] font-bold bg-white/70 hover:bg-black hover:text-white transition-colors cursor-pointer flex-shrink-0"
-            title="Sign out"
-          >
-            {user?.email ? user.email.slice(0, 2).toUpperCase() : "U"}
-          </button>
-        </header>
-
-        <main className="flex-grow p-8 w-full max-w-7xl mx-auto">
-          {/* PR Title & Meta */}
-          <div className="mb-6">
-            <div className="flex items-start gap-3 flex-wrap mb-3">
-              <h1 className="text-[24px] font-bold tracking-tight text-black leading-tight flex-grow">{pr.title}</h1>
-              <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border flex-shrink-0 ${st.bg} ${st.text} ${st.border}`}>
-                <span className={`w-2 h-2 rounded-full ${st.dot}`} />
-                {st.label}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-[12px] text-[#777] flex-wrap">
-              <div className="flex items-center gap-1.5">
-                <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[9px] font-bold">
-                  {(pr.author || "U").slice(0, 1).toUpperCase()}
-                </div>
-                <span className="font-medium text-black">{pr.author}</span>
-              </div>
-              <span>wants to merge</span>
-              <code className="bg-[#f0f0f0] border border-[#e0e0e0] px-1.5 py-0.5 rounded text-[11px] font-mono text-black">{pr.source_branch || "feature"}</code>
-              <span>into</span>
-              <code className="bg-[#f0f0f0] border border-[#e0e0e0] px-1.5 py-0.5 rounded text-[11px] font-mono text-black">{pr.target_branch || "main"}</code>
-              <span>·</span>
-              <span>opened {timeAgo(pr.created_at)}</span>
-              {pr.merged_at && <><span>·</span><span>merged {timeAgo(pr.merged_at)}</span></>}
-            </div>
-          </div>
-
-          {/* Tab Navigation */}
-          <div className="flex items-center gap-0 border-b border-[#e5e5e5] mb-6">
-            {[
-              { id: "conversation", icon: "chat_bubble", label: "Conversation", count: comments.length },
-              { id: "files", icon: "diff", label: "Files Changed", count: null },
-            ].map((tab) => (
+            { id: "conversation", label: "Conversation", count: comments.length, icon: "forum" },
+            { id: "diff", label: "Visual Diff Comparison", icon: "compare" },
+            { id: "files", label: "Commits & Node History", count: commits.length, icon: "history" },
+          ].map((tab) => {
+            const isSelected = activeTab === tab.id;
+            return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 py-3 text-[13px] font-medium border-b-2 transition-colors cursor-pointer ${
-                  activeTab === tab.id
+                className={`flex items-center gap-2 px-4 py-3 text-[13px] font-bold transition-all border-b-2 cursor-pointer ${
+                  isSelected
                     ? "border-black text-black"
-                    : "border-transparent text-[#666] hover:text-black hover:border-[#ccc]"
+                    : "border-transparent text-[#666666] hover:text-black hover:border-[#c5c5c5]"
                 }`}
               >
-                <span className="material-symbols-outlined text-[15px]">{tab.icon}</span>
-                {tab.label}
-                {tab.count !== null && tab.count > 0 && (
-                  <span className="bg-[#f0f0f0] text-[#555] text-[10px] font-bold px-1.5 py-0.5 rounded-full">{tab.count}</span>
+                <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                      isSelected ? "bg-black text-white" : "bg-[#f0f0f2] text-[#666666]"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
                 )}
               </button>
-            ))}
+            );
+          })}
+        </div>
+
+        {/* 2-Column Responsive Dashboard Layout */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+          {/* Left Column (2/3 width): Main Tab Content */}
+          <div className="xl:col-span-2 flex flex-col gap-6">
+            {/* Conversation Tab */}
+            {activeTab === "conversation" && (
+              <div className="flex flex-col gap-6">
+                {/* Original PR Description Card */}
+                <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl overflow-hidden shadow-xs">
+                  <div className="flex items-center justify-between px-5 py-3 bg-[#f8f8fa] border-b border-[#e5e5e5]/60">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[13px] text-black">{pr.author}</span>
+                      <span className="text-[11px] text-[#888888]">commented {timeAgo(pr.created_at)}</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-black bg-white px-2.5 py-0.5 rounded border border-[#e0e0e0]">
+                      Author
+                    </span>
+                  </div>
+                  <div className="p-5 text-[13px] text-black leading-relaxed font-sans whitespace-pre-wrap">
+                    {pr.description || "No description provided."}
+                  </div>
+                </div>
+
+                {/* Comment Thread Component */}
+                <CommentThread
+                  comments={comments}
+                  prId={pr.id}
+                  user={user}
+                  onNewComment={(newC) => setComments((prev) => [...prev, newC])}
+                />
+              </div>
+            )}
+
+            {/* Visual Diff Comparison Tab */}
+            {activeTab === "diff" && (
+              <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-xs flex flex-col gap-5">
+                <div className="flex items-center justify-between border-b border-[#f0f0f2] pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[20px] text-black">compare</span>
+                    <h2 className="text-[16px] font-bold text-black font-sans tracking-tight">
+                      Figma Visual Diff Comparison
+                    </h2>
+                  </div>
+                  <div className="text-[11px] font-mono text-black bg-[#f0f0f2] px-2.5 py-1 rounded border border-[#e0e0e0]">
+                    gitdesign/{pr.file_key}
+                  </div>
+                </div>
+
+                {/* Split Interactive Diff Slider */}
+                <VisualDiffSlider beforeUrl={beforeSnapshot} afterUrl={afterSnapshot} />
+
+                <div className="flex items-center justify-between text-[11px] text-[#666666] pt-2 border-t border-[#f0f0f2]">
+                  <span>Drag the center divider handle to compare Figma design snapshots.</span>
+                  <span className="font-bold text-black">
+                    Target File: gitdesign/{pr.file_key}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Commits & Files Changed Tab */}
+            {activeTab === "files" && (
+              <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-xs flex flex-col gap-4">
+                <div className="flex items-center justify-between border-b border-[#f0f0f2] pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[20px] text-black">history</span>
+                    <h2 className="text-[16px] font-bold text-black font-sans tracking-tight">
+                      Recent Commits in Branch ({commits.length})
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="flex flex-col divide-y divide-[#f0f0f2]">
+                  {commits.map((c) => (
+                    <div
+                      key={c.id}
+                      onClick={() => router.push(`/dashboard/commit/${c.id}`)}
+                      className="py-3.5 flex items-center justify-between hover:bg-white px-3 rounded-lg transition-colors cursor-pointer group"
+                    >
+                      <div className="flex items-start gap-3 min-w-0 grow">
+                        <span className="material-symbols-outlined text-[20px] text-black mt-0.5">
+                          commit
+                        </span>
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <p className="text-[13px] font-bold text-black group-hover:underline truncate">
+                            {c.message}
+                          </p>
+                          <div className="flex items-center gap-2 text-[11px] text-[#666666]">
+                            <span className="font-mono bg-[#f0f0f2] border border-[#e0e0e0] px-1.5 py-0.5 rounded text-[10px] text-black font-semibold">
+                              {c.id.slice(0, 7)}
+                            </span>
+                            <span>by {c.author}</span>
+                            <span>&middot;</span>
+                            <span>{timeAgo(c.timestamp)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <span className="material-symbols-outlined text-[18px] text-[#999999] group-hover:text-black">
+                        chevron_right
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Content Area: 2-column layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            
-            {/* ── LEFT / MAIN COLUMN ── */}
-            <div className="lg:col-span-2 flex flex-col gap-6">
+          {/* Right Column (1/3 width): Merge Box & Review Controls */}
+          <div className="flex flex-col gap-6">
+            {/* Merge Control Card */}
+            <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-xs flex flex-col gap-4">
+              <h2 className="text-[16px] font-bold text-black font-sans tracking-tight border-b border-[#f0f0f2] pb-3">
+                Merge Status
+              </h2>
 
-              {/* Description card */}
-              {pr.description && (
-                <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/40 rounded-lg overflow-hidden shadow-sm">
-                  <div className="flex items-center gap-3 px-5 py-3 bg-[#fafafa] border-b border-[#f0f0f0]">
-                    <div className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold">
-                      {(pr.author || "U").slice(0, 1).toUpperCase()}
+              {!isMerged ? (
+                <div className="flex flex-col gap-3">
+                  <div className={`p-3.5 rounded-lg border flex items-center gap-2.5 ${
+                    canMerge ? "bg-emerald-50 border-emerald-200" : "bg-[#f8f8fa] border-[#e0e0e4]"
+                  }`}>
+                    <span className={`material-symbols-outlined text-[20px] ${canMerge ? "text-emerald-600" : "text-[#888888]"}`}>
+                      {canMerge ? "check_circle" : "pending"}
+                    </span>
+                    <div className="flex flex-col">
+                      <span className={`text-[12px] font-bold ${canMerge ? "text-emerald-800" : "text-black"}`}>
+                        {canMerge ? "Ready to Merge" : "Awaiting Review Approval"}
+                      </span>
+                      <span className="text-[10px] text-[#666666]">
+                        {canMerge
+                          ? "These design branch changes can be safely merged."
+                          : "At least one reviewer must approve before merging."}
+                      </span>
                     </div>
-                    <span className="text-[12px] font-semibold text-black">{pr.author}</span>
-                    <span className="text-[11px] text-[#888]">opened this pull request · {timeAgo(pr.created_at)}</span>
                   </div>
-                  <div className="px-5 py-4 text-[13px] text-black leading-relaxed whitespace-pre-wrap">
-                    {pr.description}
-                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleMerge}
+                    disabled={!canMerge || merging}
+                    className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-[13px] py-2.5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                  >
+                    {merging ? (
+                      <span className="material-symbols-outlined animate-spin text-[16px]">
+                        progress_activity
+                      </span>
+                    ) : (
+                      <span className="material-symbols-outlined text-[16px]">call_merge</span>
+                    )}
+                    {merging ? "Merging Changes..." : "Merge Pull Request"}
+                  </button>
                 </div>
-              )}
-
-              {/* ── CONVERSATION TAB ── */}
-              {activeTab === "conversation" && (
-                <div className="flex flex-col gap-4">
-                  <CommentThread
-                    comments={comments}
-                    prId={prId}
-                    user={user}
-                    onNewComment={(c) => setComments(prev => [...prev, c])}
-                  />
-                </div>
-              )}
-
-              {/* ── FILES CHANGED TAB ── */}
-              {activeTab === "files" && (
-                <div className="flex flex-col gap-5">
-                  {/* Visual Diff Section */}
-                  <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/40 rounded-lg overflow-hidden shadow-sm">
-                    <div className="flex items-center justify-between px-5 py-3 border-b border-[#f0f0f0] bg-[#fafafa]">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[16px] text-[#555]">compare</span>
-                        <h3 className="text-[13px] font-bold text-black">Visual Design Diff</h3>
-                        <span className="text-[10px] bg-[#f0f0f0] border border-[#e0e0e0] px-2 py-0.5 rounded text-[#666] font-medium">
-                          {beforeSnapshot && afterSnapshot ? "Snapshots available" : beforeSnapshot || afterSnapshot ? "Partial snapshot" : "No snapshots"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => setDiffMode("slider")}
-                          className={`px-2.5 py-1 text-[10px] font-semibold rounded transition-colors cursor-pointer ${
-                            diffMode === "slider" ? "bg-black text-white" : "text-[#666] hover:bg-[#f0f0f0]"
-                          }`}
-                        >
-                          Slider
-                        </button>
-                        <button
-                          onClick={() => setDiffMode("side-by-side")}
-                          className={`px-2.5 py-1 text-[10px] font-semibold rounded transition-colors cursor-pointer ${
-                            diffMode === "side-by-side" ? "bg-black text-white" : "text-[#666] hover:bg-[#f0f0f0]"
-                          }`}
-                        >
-                          Side by Side
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="p-5">
-                      {diffMode === "slider" ? (
-                        <VisualDiffSlider beforeUrl={beforeSnapshot} afterUrl={afterSnapshot} />
-                      ) : (
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-red-400" />
-                              <span className="text-[10px] font-bold text-[#555] uppercase tracking-wider">Before · main</span>
-                            </div>
-                            <div className="border border-[#e0e0e0] rounded-lg overflow-hidden bg-[#f8f8f8]" style={{ aspectRatio: "4/3" }}>
-                              {beforeSnapshot ? (
-                                <img src={beforeSnapshot} alt="Before" className="w-full h-full object-contain" />
-                              ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center text-[#ccc] gap-2">
-                                  <span className="material-symbols-outlined text-[28px]">image_not_supported</span>
-                                  <span className="text-[10px]">No snapshot</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                              <span className="text-[10px] font-bold text-[#555] uppercase tracking-wider">After · feature</span>
-                            </div>
-                            <div className="border border-[#e0e0e0] rounded-lg overflow-hidden bg-[#f8f8f8]" style={{ aspectRatio: "4/3" }}>
-                              {afterSnapshot ? (
-                                <img src={afterSnapshot} alt="After" className="w-full h-full object-contain" />
-                              ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center text-[#ccc] gap-2">
-                                  <span className="material-symbols-outlined text-[28px]">image_not_supported</span>
-                                  <span className="text-[10px]">No snapshot</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {!beforeSnapshot && !afterSnapshot && (
-                        <div className="mt-3 flex items-center gap-2 text-[11px] text-[#888] bg-[#f9f9f9] border border-[#e8e8e8] rounded p-3">
-                          <span className="material-symbols-outlined text-[14px]">info</span>
-                          Visual snapshots are captured automatically when the Figma plugin commits with snapshot data. Falling back to layer diff below.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Layer Diff Section */}
-                  <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/40 rounded-lg overflow-hidden shadow-sm">
-                    <div className="px-5 py-3 border-b border-[#f0f0f0] bg-[#fafafa]">
-                      <h3 className="text-[13px] font-bold text-black">Layer-Level Changes</h3>
-                    </div>
-                    <div className="p-5">
-                      {loadingTextDiff ? (
-                        <div className="flex items-center gap-2 text-[12px] text-[#666] py-4">
-                          <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
-                          Analyzing layer diff…
-                        </div>
-                      ) : textDiff ? (
-                        <div className="flex flex-col gap-4 font-mono text-[12px]">
-                          {textDiff.added.length > 0 && (
-                            <div>
-                              <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1.5">
-                                + {textDiff.added.length} Added
-                              </div>
-                              <div className="flex flex-col gap-0.5 pl-3 border-l-2 border-emerald-300">
-                                {textDiff.added.map(n => (
-                                  <div key={n.id} className="flex items-center gap-2 text-emerald-700 py-0.5">
-                                    <span className="text-emerald-400">+</span>
-                                    <span className="font-medium">{n.name}</span>
-                                    <span className="text-[10px] text-emerald-400 font-sans">({n.type})</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {textDiff.removed.length > 0 && (
-                            <div>
-                              <div className="text-[10px] font-bold text-red-700 uppercase tracking-wider mb-1.5">
-                                − {textDiff.removed.length} Removed
-                              </div>
-                              <div className="flex flex-col gap-0.5 pl-3 border-l-2 border-red-300">
-                                {textDiff.removed.map(n => (
-                                  <div key={n.id} className="flex items-center gap-2 text-red-600 py-0.5">
-                                    <span className="text-red-400">−</span>
-                                    <span className="font-medium line-through">{n.name}</span>
-                                    <span className="text-[10px] text-red-400 font-sans">({n.type})</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {textDiff.modified.length > 0 && (
-                            <div>
-                              <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1.5">
-                                ~ {textDiff.modified.length} Modified
-                              </div>
-                              <div className="flex flex-col gap-1 pl-3 border-l-2 border-amber-300">
-                                {textDiff.modified.map(n => (
-                                  <div key={n.id} className="py-0.5">
-                                    <div className="flex items-center gap-2 text-amber-700">
-                                      <span className="text-amber-400">~</span>
-                                      <span className="font-medium">{n.name}</span>
-                                      <span className="text-[10px] text-amber-400 font-sans">({n.type})</span>
-                                    </div>
-                                    {n.changedProps?.length > 0 && (
-                                      <div className="text-[10px] text-[#888] pl-4 mt-0.5 font-sans">
-                                        Changed: {n.changedProps.join(", ")}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {textDiff.added.length === 0 && textDiff.removed.length === 0 && textDiff.modified.length === 0 && (
-                            <div className="text-[12px] text-[#888] italic font-sans py-2">No layer changes detected between the two most recent commits.</div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-[12px] text-[#888] py-4 italic">No commit data available for this file.</div>
-                      )}
-                    </div>
+              ) : (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[24px] text-purple-700">call_merge</span>
+                  <div className="flex flex-col">
+                    <span className="text-[13px] font-bold text-purple-900">Pull Request Merged</span>
+                    <span className="text-[11px] text-purple-700 mt-0.5">
+                      Merged by {pr.merged_by || pr.author} into {pr.target_branch || "main"}.
+                    </span>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* ── RIGHT / REVIEW SIDEBAR ── */}
-            <div className="flex flex-col gap-4">
-              <ReviewPanel
-                prId={prId}
-                user={user}
-                pr={pr}
-                reviews={reviews}
-                onReviewSubmitted={(review, newStatus) => {
-                  setReviews(prev => [...prev, review]);
-                  setPr(prev => ({ ...prev, status: newStatus }));
-                }}
-                onMerge={() => {
-                  setPr(prev => ({ ...prev, status: "merged", merged_at: new Date().toISOString() }));
-                }}
-              />
+            {/* Submit Review Form Card */}
+            {!isMerged && (
+              <form onSubmit={handleReviewSubmit} className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-xs flex flex-col gap-4">
+                <h2 className="text-[16px] font-bold text-black font-sans tracking-tight border-b border-[#f0f0f2] pb-3">
+                  Submit a Review
+                </h2>
 
-              {/* Reviewers list */}
-              {pr.reviewers?.length > 0 && (
-                <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/40 rounded-lg p-4 shadow-sm">
-                  <h3 className="text-[11px] font-bold text-[#555] uppercase tracking-wider mb-3">Requested Reviewers</h3>
-                  <div className="flex flex-col gap-2">
-                    {pr.reviewers.map((r) => {
-                      const hasReviewed = reviews.some(rev => rev.reviewer_name === r);
-                      return (
-                        <div key={r} className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center text-[9px] font-bold flex-shrink-0">
-                            {r.slice(0, 1).toUpperCase()}
-                          </div>
-                          <span className="text-[12px] text-black truncate flex-grow">{r}</span>
-                          {hasReviewed ? (
-                            <span className="material-symbols-outlined text-[14px] text-emerald-500">check_circle</span>
-                          ) : (
-                            <span className="text-[10px] text-[#aaa]">Pending</span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                <textarea
+                  value={reviewBody}
+                  onChange={(e) => setReviewBody(e.target.value)}
+                  placeholder="Leave review comments..."
+                  rows={4}
+                  className="w-full p-3 border border-[#c5c5c5] focus:border-black rounded-lg text-[12px] text-black placeholder-[#999999] outline-none resize-none font-sans"
+                />
 
-              {/* File Info */}
-              <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/40 rounded-lg p-4 shadow-sm">
-                <h3 className="text-[11px] font-bold text-[#555] uppercase tracking-wider mb-3">Design File</h3>
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px] text-[#555]">folder_open</span>
-                  <span className="text-[12px] font-mono text-black truncate">{pr.file_key}</span>
+                <div className="flex flex-col gap-2 select-none">
+                  {[
+                    { value: "comment", icon: "chat_bubble", label: "Comment", desc: "General feedback" },
+                    { value: "approve", icon: "check_circle", label: "Approve", desc: "Ready to merge" },
+                    { value: "request_changes", icon: "change_circle", label: "Request Changes", desc: "Must be addressed" },
+                  ].map((opt) => (
+                    <label key={opt.value} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-[#f5f5f7] cursor-pointer transition-colors">
+                      <input
+                        type="radio"
+                        name="review-action-group"
+                        value={opt.value}
+                        checked={reviewAction === opt.value}
+                        onChange={() => setReviewAction(opt.value)}
+                        className="mt-0.5 accent-black cursor-pointer"
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-[12px] font-bold text-black flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">{opt.icon}</span>
+                          {opt.label}
+                        </span>
+                        <span className="text-[10px] text-[#777777]">{opt.desc}</span>
+                      </div>
+                    </label>
+                  ))}
                 </div>
+
+                <button
+                  type="submit"
+                  disabled={reviewSubmitting}
+                  className="w-full bg-black hover:bg-black/90 text-white font-bold text-[12px] py-2.5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                >
+                  {reviewSubmitting && (
+                    <span className="material-symbols-outlined animate-spin text-[14px]">
+                      progress_activity
+                    </span>
+                  )}
+                  Submit Review
+                </button>
+              </form>
+            )}
+
+            {/* Target Design File Metadata */}
+            <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-xs flex flex-col gap-3">
+              <span className="text-[11px] font-bold text-[#666666] uppercase tracking-wider">
+                Target Design File
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-black">folder_open</span>
+                <span className="text-[13px] font-bold text-black font-mono">
+                  gitdesign/{pr.file_key}
+                </span>
               </div>
             </div>
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
