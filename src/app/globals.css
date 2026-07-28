@@ -77,16 +77,6 @@
   --font-body-lg: "Inter", sans-serif;
   --font-headline-xl: "Inter", sans-serif;
 
-  /* Font Sizes */
-  --font-size-body-md: 14px;
-  --font-size-headline-lg: 24px;
-  --font-size-code-md: 13px;
-  --font-size-body-sm: 12px;
-  --font-size-label-md: 14px;
-  --font-size-headline-md: 18px;
-  --font-size-body-lg: 16px;
-  --font-size-headline-xl: 32px;
-
   /* Custom Marquee Animation */
   @keyframes marquee {
     from { transform: translateX(0); }
@@ -133,4 +123,13 @@ body {
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background: var(--color-outline-variant);
   border-radius: 2px;
+}
+
+/* Hide scrollbar for clean UI elements */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
