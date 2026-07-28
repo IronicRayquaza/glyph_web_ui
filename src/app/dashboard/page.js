@@ -212,7 +212,7 @@ export default function DashboardPage() {
       </video>
       
       {/* ─── LEFT SIDEBAR ────────────────────────────────────── */}
-      <aside className="w-[240px] bg-white/70 backdrop-blur-lg border-r border-[#d5d5d5]/40 flex flex-col flex-shrink-0 z-10">
+      <aside className="w-60 bg-white/70 backdrop-blur-lg border-r border-[#d5d5d5]/40 flex flex-col shrink-0 z-10">
         {/* Profile Card Header */}
         <div className="p-md border-b border-[#d5d5d5]/40 flex items-center gap-sm">
           <div className="w-10 h-10 bg-white/80 border border-[#c5c5c5]/40 rounded-DEFAULT flex items-center justify-center overflow-hidden">
@@ -226,7 +226,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Navigation list */}
-        <nav className="flex-grow py-sm flex flex-col justify-between">
+        <nav className="grow py-sm flex flex-col justify-between">
           <div className="flex flex-col">
             {[
               { id: "Dashboard", icon: "grid_view", href: null },
@@ -241,7 +241,7 @@ export default function DashboardPage() {
                   <Link
                     key={tab.id}
                     href={tab.href}
-                    className="w-full flex items-center gap-sm px-md py-[10px] text-[13px] text-left transition-colors relative text-[#555555] hover:bg-[#e2e2e2]/40 hover:text-black"
+                    className="w-full flex items-center gap-sm px-md py-2.5 text-[13px] text-left transition-colors relative text-[#555555] hover:bg-[#e2e2e2]/40 hover:text-black"
                   >
                     <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
                     {tab.id}
@@ -252,7 +252,7 @@ export default function DashboardPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-sm px-md py-[10px] text-[13px] text-left transition-colors relative cursor-pointer ${
+                  className={`w-full flex items-center gap-sm px-md py-2.5 text-[13px] text-left transition-colors relative cursor-pointer ${
                     isSelected 
                       ? "bg-white/80 backdrop-blur-sm font-bold text-black border-l-[3px] border-black" 
                       : "text-[#555555] hover:bg-[#e2e2e2]/40 hover:text-black"
@@ -288,11 +288,11 @@ export default function DashboardPage() {
       </aside>
 
       {/* ─── MAIN COLUMN ────────────────────────────────────── */}
-      <div className="flex-grow flex flex-col min-w-0 z-10">
+      <div className="grow flex flex-col min-w-0 z-10">
         
         {/* Top Header Bar */}
         <header className="bg-white/70 backdrop-blur-lg border-b border-[#e5e5e5]/40 h-16 flex justify-between items-center px-margin">
-          <div className="flex items-center gap-xl flex-grow max-w-4xl">
+          <div className="flex items-center gap-xl grow max-w-4xl">
             <Link href="/" className="text-[18px] font-bold font-sans tracking-tight text-black select-none">
               GitDesign
             </Link>
@@ -300,7 +300,7 @@ export default function DashboardPage() {
             {/* Small GitHub-style Search Trigger Button */}
             <div 
               onClick={() => setIsSearchOpen(true)}
-              className="relative w-[240px] bg-white/60 hover:bg-white/80 border border-[#d5d5d5]/30 rounded px-sm py-[6px] flex items-center justify-between text-[12px] text-[#666666] cursor-pointer select-none transition-colors"
+              className="relative w-60 bg-white/60 hover:bg-white/80 border border-[#d5d5d5]/30 rounded px-sm py-1.5 flex items-center justify-between text-[12px] text-[#666666] cursor-pointer select-none transition-colors"
             >
               <div className="flex items-center gap-xs">
                 <span className="material-symbols-outlined text-[16px] text-[#666666]">search</span>
@@ -326,7 +326,7 @@ export default function DashboardPage() {
 
               {/* Notifications Dropdown */}
               {isNotifOpen && (
-                <div className="absolute right-0 top-full mt-2 w-[340px] bg-white border border-[#e0e0e0] rounded-lg shadow-xl z-50 overflow-hidden">
+                <div className="absolute right-0 top-full mt-2 w-85 bg-white border border-[#e0e0e0] rounded-lg shadow-xl z-50 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-[#f0f0f0] bg-[#fafafa]">
                     <span className="text-[13px] font-bold text-black">Notifications</span>
                     {notifications.some(n => !n.read) && (
@@ -338,7 +338,7 @@ export default function DashboardPage() {
                       </button>
                     )}
                   </div>
-                  <div className="max-h-[360px] overflow-y-auto divide-y divide-[#f5f5f5]">
+                  <div className="max-h-90 overflow-y-auto divide-y divide-[#f5f5f5]">
                     {notifications.length === 0 ? (
                       <div className="px-4 py-8 text-center flex flex-col items-center gap-2 text-[#aaa]">
                         <span className="material-symbols-outlined text-[28px] opacity-40">notifications_none</span>
@@ -353,7 +353,7 @@ export default function DashboardPage() {
                             !n.read ? "bg-[#f8f8ff] hover:bg-[#f0f0ff]" : "hover:bg-[#fafafa]"
                           }`}
                         >
-                          <span className={`material-symbols-outlined text-[16px] mt-0.5 flex-shrink-0 ${
+                          <span className={`material-symbols-outlined text-[16px] mt-0.5 shrink-0 ${
                             n.type === "approve" ? "text-emerald-500" :
                             n.type === "request_changes" ? "text-amber-500" :
                             n.type === "merged" ? "text-purple-500" :
@@ -366,11 +366,11 @@ export default function DashboardPage() {
                              n.type === "review_requested" ? "rate_review" :
                              "notifications"}
                           </span>
-                          <div className="flex-grow min-w-0">
+                          <div className="grow min-w-0">
                             <p className={`text-[12px] leading-tight ${!n.read ? "font-semibold text-black" : "text-[#555]"}`}>{n.title}</p>
                             <p className="text-[11px] text-[#888] mt-0.5 leading-snug truncate">{n.body}</p>
                           </div>
-                          {!n.read && <div className="w-2 h-2 bg-black rounded-full flex-shrink-0 mt-1" />}
+                          {!n.read && <div className="w-2 h-2 bg-black rounded-full shrink-0 mt-1" />}
                         </div>
                       ))
                     )}
@@ -381,7 +381,7 @@ export default function DashboardPage() {
 
             <Link
               href="/dashboard/pulls/new"
-              className="bg-black text-white hover:bg-black/90 font-medium text-[12px] px-sm py-[6px] rounded transition-colors flex items-center gap-1"
+              className="bg-black text-white hover:bg-black/90 font-medium text-[12px] px-sm py-1.5 rounded transition-colors flex items-center gap-1"
             >
               <span className="material-symbols-outlined text-[14px]">add</span>
               New PR
@@ -399,10 +399,10 @@ export default function DashboardPage() {
         </header>
 
         {/* Main Content Workspace Scroll */}
-        <main className="flex-grow p-margin overflow-y-auto max-w-6xl w-full mx-auto">
+        <main className="grow p-margin overflow-y-auto max-w-6xl w-full mx-auto">
           {/* Header Title Section */}
           <div className="flex justify-between items-start mb-sm">
-            <div className="flex flex-col gap-[2px]">
+            <div className="flex flex-col gap-0.5">
               <h1 className="text-[26px] font-sans tracking-tight text-black font-bold">
                 Contribution Activity
               </h1>
@@ -412,7 +412,7 @@ export default function DashboardPage() {
             </div>
             
             {/* Select timeframe calendar dropdown */}
-            <button className="bg-white/80 backdrop-blur-sm border border-[#c5c5c5]/40 text-black text-[12px] font-bold px-sm py-[6px] rounded flex items-center gap-xs hover:bg-white/95 transition-colors cursor-pointer">
+            <button className="bg-white/80 backdrop-blur-sm border border-[#c5c5c5]/40 text-black text-[12px] font-bold px-sm py-1.5 rounded flex items-center gap-xs hover:bg-white/95 transition-colors cursor-pointer">
               <span className="material-symbols-outlined text-[15px]">calendar_today</span>
               This Year
             </button>
@@ -439,15 +439,15 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Heatmap Grid Cells */}
-                <div className="flex gap-[3px] items-start overflow-x-auto py-xs scrollbar-thin">
-                  <div className="flex flex-col gap-[3px] text-[9px] text-[#888888] select-none pr-xs h-[103px] justify-between text-right font-medium">
+                <div className="flex gap-0.75 items-start overflow-x-auto py-xs scrollbar-thin">
+                  <div className="flex flex-col gap-0.75 text-[9px] text-[#888888] select-none pr-xs h-25.75 justify-between text-right font-medium">
                     <span>Sun</span>
                     <span>Wed</span>
                     <span>Sat</span>
                   </div>
-                  <div className="flex gap-[3px] items-start">
+                  <div className="flex gap-0.75 items-start">
                     {cols.map((col, cIdx) => (
-                      <div key={cIdx} className="flex flex-col gap-[3px]">
+                      <div key={cIdx} className="flex flex-col gap-0.75">
                         {col.map((cell) => {
                           let colorClass = "bg-[#f0f0f0] border border-[#e8e8e8]";
                           if (cell.count === 1) colorClass = "bg-[#c8c8c8] border border-[#bebebe]";
@@ -457,7 +457,7 @@ export default function DashboardPage() {
                           return (
                             <div
                               key={cell.key}
-                              className={`w-[11px] h-[11px] rounded-[1px] ${colorClass} hover:ring-1 hover:ring-black cursor-default`}
+                              className={`w-2.75 h-2.75 rounded-[1px] ${colorClass} hover:ring-1 hover:ring-black cursor-default`}
                               title={`${cell.key}: ${cell.count} commits`}
                             />
                           );
@@ -470,13 +470,13 @@ export default function DashboardPage() {
                 {/* Heatmap Footer Legend */}
                 <div className="flex justify-between items-center text-[11px] text-[#666666] pt-base border-t border-[#f5f5f5]">
                   <a href="#" className="hover:underline">Learn how we count contributions</a>
-                  <div className="flex items-center gap-[4px] select-none">
+                  <div className="flex items-center gap-0.75 select-none">
                     <span>Less</span>
-                    <div className="w-[11px] h-[11px] bg-[#f0f0f0] border border-[#e8e8e8] rounded-[1px]" />
-                    <div className="w-[11px] h-[11px] bg-[#c8c8c8] border border-[#bebebe] rounded-[1px]" />
-                    <div className="w-[11px] h-[11px] bg-[#8c8c8c] border border-[#808080] rounded-[1px]" />
-                    <div className="w-[11px] h-[11px] bg-[#4c4c4c] border border-[#404040] rounded-[1px]" />
-                    <div className="w-[11px] h-[11px] bg-[#000000] border border-black rounded-[1px]" />
+                    <div className="w-2.75 h-2.75 bg-[#f0f0f0] border border-[#e8e8e8] rounded-[1px]" />
+                    <div className="w-2.75 h-2.75 bg-[#c8c8c8] border border-[#bebebe] rounded-[1px]" />
+                    <div className="w-2.75 h-2.75 bg-[#8c8c8c] border border-[#808080] rounded-[1px]" />
+                    <div className="w-2.75 h-2.75 bg-[#4c4c4c] border border-[#404040] rounded-[1px]" />
+                    <div className="w-2.75 h-2.75 bg-[#000000] border border-black rounded-[1px]" />
                     <span>More</span>
                   </div>
                 </div>
@@ -508,7 +508,7 @@ export default function DashboardPage() {
                           className="p-md flex items-start gap-md hover:bg-white/65 transition-colors cursor-pointer group"
                         >
                           {/* Visual status icon on left */}
-                          <div className="pt-base flex-shrink-0 select-none">
+                          <div className="pt-base shrink-0 select-none">
                             {c.node_count > 10 ? (
                               <span className="material-symbols-outlined text-[18px] text-black">check_circle</span>
                             ) : c.node_count === 0 ? (
@@ -519,12 +519,12 @@ export default function DashboardPage() {
                           </div>
 
                           {/* Commit metadata details */}
-                          <div className="flex flex-col gap-base flex-grow min-w-0">
+                          <div className="flex flex-col gap-base grow min-w-0">
                             <p className="text-[13px] font-medium text-black leading-tight">
                               {c.message}
                             </p>
                             <div className="flex items-center gap-xs text-[11px] text-[#666666] flex-wrap">
-                              <span className="bg-white/60 border border-[#e0e0e0]/40 font-mono px-sm py-[2px] rounded text-[10px] text-black">
+                              <span className="bg-white/60 border border-[#e0e0e0]/40 font-mono px-sm py-0.5 rounded text-[10px] text-black">
                                 {c.id.slice(0, 7)}
                               </span>
                               <span>in</span>
@@ -550,7 +550,7 @@ export default function DashboardPage() {
 
                           {/* Snapshot thumbnail */}
                           {c.snapshot_url && (
-                            <div className="flex-shrink-0 w-14 h-10 rounded overflow-hidden border border-[#e5e5e5] bg-[#f5f5f5] opacity-80 group-hover:opacity-100 transition-opacity">
+                            <div className="shrink-0 w-14 h-10 rounded overflow-hidden border border-[#e5e5e5] bg-[#f5f5f5] opacity-80 group-hover:opacity-100 transition-opacity">
                               <img
                                 src={c.snapshot_url}
                                 alt=""
@@ -561,7 +561,7 @@ export default function DashboardPage() {
                           )}
 
                           {/* Arrow indicator */}
-                          <div className="flex-shrink-0 flex items-center self-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="shrink-0 flex items-center self-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <span className="material-symbols-outlined text-[16px] text-[#888]">chevron_right</span>
                           </div>
                         </div>
@@ -631,13 +631,13 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between">
                           <button 
                             onClick={() => setSelectedFile(repo.name)}
-                            className="text-[13px] font-bold text-black hover:underline text-left truncate max-w-[120px]"
+                            className="text-[13px] font-bold text-black hover:underline text-left truncate max-w-30"
                             title={repo.name}
                           >
                             {repo.name}
                           </button>
                           
-                          <div className="flex items-center gap-[2px] text-[11px] text-[#555555] select-none">
+                          <div className="flex items-center gap-0.5 text-[11px] text-[#555555] select-none">
                             <span className="material-symbols-outlined text-[13px] fill">star</span>
                             <span>{repo.commits * 10}</span>
                           </div>
@@ -669,7 +669,7 @@ export default function DashboardPage() {
           onClick={() => setIsSearchOpen(false)}
         >
           <div 
-            className="bg-white border border-[#d5d5d5] rounded shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden max-h-[500px]"
+            className="bg-white border border-[#d5d5d5] rounded shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden max-h-125"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Input Box */}
@@ -681,18 +681,18 @@ export default function DashboardPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search commits, files, or authors..."
-                className="flex-grow bg-transparent border-none text-[14px] text-black outline-none placeholder-[#999999]"
+                className="grow bg-transparent border-none text-[14px] text-black outline-none placeholder-[#999999]"
               />
               <button 
                 onClick={() => setIsSearchOpen(false)}
-                className="border border-[#c5c5c5] hover:bg-[#fafafa] bg-white rounded px-[6px] py-[2px] text-[9px] font-mono text-[#666666] transition-colors cursor-pointer font-semibold shadow-none"
+                className="border border-[#c5c5c5] hover:bg-[#fafafa] bg-white rounded px-1.5 py-0.5 text-[9px] font-mono text-[#666666] transition-colors cursor-pointer font-semibold shadow-none"
               >
                 ESC
               </button>
             </div>
 
             {/* Results list panel */}
-            <div className="overflow-y-auto flex-grow divide-y divide-[#f0f0f0] bg-white max-h-[400px]">
+            <div className="overflow-y-auto grow divide-y divide-[#f0f0f0] bg-white max-h-100">
               {searchQuery === "" ? (
                 <div className="p-md text-center text-[#888888] text-[12px] flex flex-col items-center gap-xs">
                   <span className="material-symbols-outlined text-[24px] opacity-40">keyboard_command_key</span>
@@ -700,7 +700,7 @@ export default function DashboardPage() {
                 </div>
               ) : filteredCommits.length === 0 ? (
                 <div className="p-md text-center text-[#888888] text-[12px]">
-                  No commits or files match "{searchQuery}"
+                  No commits or files match &quot;{searchQuery}&quot;
                 </div>
               ) : (
                 filteredCommits.map((c) => (
@@ -713,11 +713,11 @@ export default function DashboardPage() {
                     className="p-sm flex items-center justify-between hover:bg-[#fafafa] transition-colors cursor-pointer"
                   >
                     <div className="flex flex-col gap-base truncate">
-                      <span className="text-[13px] font-semibold text-black truncate max-w-[450px]">
+                      <span className="text-[13px] font-semibold text-black truncate max-w-112.5">
                         {c.message}
                       </span>
                       <div className="flex items-center gap-xs text-[11px] text-[#666666]">
-                        <span className="font-mono bg-[#f0f0f0] px-sm py-[2px] rounded text-[10px] text-black">
+                        <span className="font-mono bg-[#f0f0f0] px-sm py-0.5 rounded text-[10px] text-black">
                           {c.id.slice(0, 7)}
                         </span>
                         <span>in</span>
