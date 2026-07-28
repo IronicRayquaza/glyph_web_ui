@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
@@ -13,11 +13,11 @@ export default function DashboardPage() {
   const [commits, setCommits] = useState([]);
   const [activeTab, setActiveTab] = useState("Activity");
   const [selectedFile, setSelectedFile] = useState("__all__");
-  const [selectedCommit, setSelectedCommit] = useState(null);
-  const [diffData, setDiffData] = useState(null);
-  const [loadingDiff, setLoadingDiff] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const notifRef = useRef(null);
 
   // Keyboard shortcut listener for `/` key
   useEffect(() => {
@@ -47,10 +47,22 @@ export default function DashboardPage() {
       } else {
         setUser(user);
         fetchCommits(user.id);
+        fetchNotifications(user.id);
       }
     }
     checkUser();
   }, [router]);
+
+  // Close notif dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setIsNotifOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Fetch commits
   async function fetchCommits(userId) {
@@ -69,86 +81,35 @@ export default function DashboardPage() {
     }
   }
 
-  // Load detailed diff for visual popup or details section
-  async function handleCommitClick(commit) {
-    if (selectedCommit?.id === commit.id) {
-      setSelectedCommit(null);
-      setDiffData(null);
-      return;
-    }
-    setSelectedCommit(commit);
-    setLoadingDiff(true);
-    setDiffData(null);
-
+  // Fetch notifications for current user
+  async function fetchNotifications(userId) {
     try {
-      const { data: currentRows, error: err1 } = await supabase
-        .from("dvc_commits")
-        .select("nodes")
-        .eq("id", commit.id);
-      if (err1) throw err1;
-
-      const currentNodes = (currentRows && currentRows[0]?.nodes) || [];
-      const currentMap = flattenNodes(currentNodes);
-
-      let parentMap = {};
-      if (commit.parent_id) {
-        const { data: parentRows, error: err2 } = await supabase
-          .from("dvc_commits")
-          .select("nodes")
-          .eq("id", commit.parent_id);
-        if (!err2 && parentRows && parentRows[0]) {
-          parentMap = flattenNodes(parentRows[0].nodes || []);
-        }
-      }
-
-      const added = [];
-      const removed = [];
-      const modified = [];
-
-      Object.keys(currentMap).forEach((id) => {
-        const curr = currentMap[id];
-        const prev = parentMap[id];
-        if (!prev) {
-          added.push(curr);
-        } else if (prev.hash !== curr.hash) {
-          modified.push({
-            ...curr,
-            changedProps: getChangedProps(prev, curr),
-          });
-        }
-      });
-
-      Object.keys(parentMap).forEach((id) => {
-        if (!currentMap[id]) {
-          removed.push(parentMap[id]);
-        }
-      });
-
-      setDiffData({ added, removed, modified });
+      const { data } = await supabase
+        .from("dvc_notifications")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setNotifications(data || []);
     } catch (e) {
-      console.error("Diff load error:", e);
-    } finally {
-      setLoadingDiff(false);
+      // Table may not exist yet — silently ignore
+      setNotifications([]);
     }
   }
 
-  function flattenNodes(list, map = {}) {
-    for (const n of list) {
-      map[n.id] = n;
-      if (n.children) flattenNodes(n.children, map);
-    }
-    return map;
+  async function markAllRead() {
+    if (!user) return;
+    await supabase
+      .from("dvc_notifications")
+      .update({ read: true })
+      .eq("user_id", user.id)
+      .eq("read", false);
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   }
 
-  function getChangedProps(prev, curr) {
-    const list = [];
-    const props = ["name", "visible", "opacity", "x", "y", "width", "height", "fills", "strokes", "strokeWeight", "cornerRadius", "effects", "layoutMode", "itemSpacing", "paddingLeft", "paddingRight", "paddingTop", "paddingBottom", "characters", "fontSize", "fontName"];
-    props.forEach((p) => {
-      if (JSON.stringify(prev[p]) !== JSON.stringify(curr[p])) {
-        list.push(p);
-      }
-    });
-    return list;
+  async function markNotifRead(notifId) {
+    await supabase.from("dvc_notifications").update({ read: true }).eq("id", notifId);
+    setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, read: true } : n));
   }
 
   async function handleSignOut() {
@@ -268,13 +229,25 @@ export default function DashboardPage() {
         <nav className="flex-grow py-sm flex flex-col justify-between">
           <div className="flex flex-col">
             {[
-              { id: "Dashboard", icon: "grid_view" },
-              { id: "Repositories", icon: "folder_open" },
-              { id: "Branches", icon: "call_split" },
-              { id: "Pull Requests", icon: "merge_type" },
-              { id: "Activity", icon: "history" }
+              { id: "Dashboard", icon: "grid_view", href: null },
+              { id: "Repositories", icon: "folder_open", href: null },
+              { id: "Branches", icon: "call_split", href: null },
+              { id: "Pull Requests", icon: "merge_type", href: "/dashboard/pulls" },
+              { id: "Activity", icon: "history", href: null }
             ].map((tab) => {
               const isSelected = activeTab === tab.id;
+              if (tab.href) {
+                return (
+                  <Link
+                    key={tab.id}
+                    href={tab.href}
+                    className="w-full flex items-center gap-sm px-md py-[10px] text-[13px] text-left transition-colors relative text-[#555555] hover:bg-[#e2e2e2]/40 hover:text-black"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+                    {tab.id}
+                  </Link>
+                );
+              }
               return (
                 <button
                   key={tab.id}
@@ -339,16 +312,80 @@ export default function DashboardPage() {
 
           {/* Right Header Navigation */}
           <div className="flex items-center gap-sm">
-            <button className="text-[#555555] hover:text-black p-xs rounded cursor-pointer transition-colors relative">
-              <span className="material-symbols-outlined text-[20px]">notifications</span>
-              <span className="absolute top-[6px] right-[6px] w-[6px] h-[6px] bg-black rounded-full" />
-            </button>
-            <button className="text-[#555555] hover:text-black p-xs rounded cursor-pointer transition-colors">
-              <span className="material-symbols-outlined text-[20px]">help</span>
-            </button>
-            <button className="bg-black text-white hover:bg-black/90 font-medium text-[12px] px-sm py-[6px] rounded transition-colors cursor-pointer">
-              New
-            </button>
+            {/* Notifications Bell */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                className="text-[#555555] hover:text-black p-xs rounded cursor-pointer transition-colors relative"
+              >
+                <span className="material-symbols-outlined text-[20px]">notifications</span>
+                {notifications.filter(n => !n.read).length > 0 && (
+                  <span className="absolute top-[4px] right-[4px] w-[8px] h-[8px] bg-black rounded-full border-2 border-white" />
+                )}
+              </button>
+
+              {/* Notifications Dropdown */}
+              {isNotifOpen && (
+                <div className="absolute right-0 top-full mt-2 w-[340px] bg-white border border-[#e0e0e0] rounded-lg shadow-xl z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-[#f0f0f0] bg-[#fafafa]">
+                    <span className="text-[13px] font-bold text-black">Notifications</span>
+                    {notifications.some(n => !n.read) && (
+                      <button
+                        onClick={markAllRead}
+                        className="text-[11px] text-[#666] hover:text-black transition-colors cursor-pointer"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-[360px] overflow-y-auto divide-y divide-[#f5f5f5]">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-8 text-center flex flex-col items-center gap-2 text-[#aaa]">
+                        <span className="material-symbols-outlined text-[28px] opacity-40">notifications_none</span>
+                        <span className="text-[12px]">No notifications yet</span>
+                      </div>
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => { markNotifRead(n.id); if (n.pr_id) router.push(`/dashboard/pulls/${n.pr_id}`); setIsNotifOpen(false); }}
+                          className={`px-4 py-3 flex items-start gap-3 cursor-pointer transition-colors ${
+                            !n.read ? "bg-[#f8f8ff] hover:bg-[#f0f0ff]" : "hover:bg-[#fafafa]"
+                          }`}
+                        >
+                          <span className={`material-symbols-outlined text-[16px] mt-0.5 flex-shrink-0 ${
+                            n.type === "approve" ? "text-emerald-500" :
+                            n.type === "request_changes" ? "text-amber-500" :
+                            n.type === "merged" ? "text-purple-500" :
+                            n.type === "review_requested" ? "text-blue-500" :
+                            "text-[#888]"
+                          }`}>
+                            {n.type === "approve" ? "check_circle" :
+                             n.type === "request_changes" ? "change_circle" :
+                             n.type === "merged" ? "merge" :
+                             n.type === "review_requested" ? "rate_review" :
+                             "notifications"}
+                          </span>
+                          <div className="flex-grow min-w-0">
+                            <p className={`text-[12px] leading-tight ${!n.read ? "font-semibold text-black" : "text-[#555]"}`}>{n.title}</p>
+                            <p className="text-[11px] text-[#888] mt-0.5 leading-snug truncate">{n.body}</p>
+                          </div>
+                          {!n.read && <div className="w-2 h-2 bg-black rounded-full flex-shrink-0 mt-1" />}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Link
+              href="/dashboard/pulls/new"
+              className="bg-black text-white hover:bg-black/90 font-medium text-[12px] px-sm py-[6px] rounded transition-colors flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-[14px]">add</span>
+              New PR
+            </Link>
             
             {/* User Avatar Initials */}
             <button 
@@ -464,118 +501,69 @@ export default function DashboardPage() {
                     </div>
                   ) : (
                     filteredCommits.map((c) => {
-                      const isExpanded = selectedCommit?.id === c.id;
                       return (
-                        <div key={c.id} className="flex flex-col">
-                          <div 
-                            onClick={() => handleCommitClick(c)}
-                            className="p-md flex items-start gap-md hover:bg-white/65 transition-colors cursor-pointer"
-                          >
-                            {/* Visual status icon on left */}
-                            <div className="pt-base flex-shrink-0 select-none">
-                              {c.node_count > 10 ? (
-                                <span className="material-symbols-outlined text-[18px] text-black">check_circle</span>
-                              ) : c.node_count === 0 ? (
-                                <span className="material-symbols-outlined text-[18px] text-[#999999]">remove_circle</span>
-                              ) : (
-                                <span className="material-symbols-outlined text-[18px] text-[#444444]">adjust</span>
-                              )}
-                            </div>
-                            
-                            {/* Commit metadata details */}
-                            <div className="flex flex-col gap-base flex-grow">
-                              <p className="text-[13px] font-medium text-black leading-tight">
-                                {c.message}
-                              </p>
-                              <div className="flex items-center gap-xs text-[11px] text-[#666666] flex-wrap">
-                                <span className="bg-white/60 border border-[#e0e0e0]/40 font-mono px-sm py-[2px] rounded text-[10px] text-black">
-                                  {c.id.slice(0, 7)}
+                        <div
+                          key={c.id}
+                          onClick={() => router.push(`/dashboard/commit/${c.id}`)}
+                          className="p-md flex items-start gap-md hover:bg-white/65 transition-colors cursor-pointer group"
+                        >
+                          {/* Visual status icon on left */}
+                          <div className="pt-base flex-shrink-0 select-none">
+                            {c.node_count > 10 ? (
+                              <span className="material-symbols-outlined text-[18px] text-black">check_circle</span>
+                            ) : c.node_count === 0 ? (
+                              <span className="material-symbols-outlined text-[18px] text-[#999999]">remove_circle</span>
+                            ) : (
+                              <span className="material-symbols-outlined text-[18px] text-[#444444]">adjust</span>
+                            )}
+                          </div>
+
+                          {/* Commit metadata details */}
+                          <div className="flex flex-col gap-base flex-grow min-w-0">
+                            <p className="text-[13px] font-medium text-black leading-tight">
+                              {c.message}
+                            </p>
+                            <div className="flex items-center gap-xs text-[11px] text-[#666666] flex-wrap">
+                              <span className="bg-white/60 border border-[#e0e0e0]/40 font-mono px-sm py-[2px] rounded text-[10px] text-black">
+                                {c.id.slice(0, 7)}
+                              </span>
+                              <span>in</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedFile(c.file_key);
+                                }}
+                                className="text-black hover:underline font-medium"
+                              >
+                                gitdesign/{c.file_key}
+                              </button>
+                              <span>&middot;</span>
+                              <span>{timeAgo(c.timestamp)}</span>
+                              {c.snapshot_url && (
+                                <span className="flex items-center gap-[3px] text-[#888] text-[9px] border border-[#e0e0e0] bg-white/60 px-1.5 py-[1px] rounded-full">
+                                  <span className="material-symbols-outlined text-[10px]">image</span>
+                                  snapshot
                                 </span>
-                                <span>in</span>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedFile(c.file_key);
-                                  }}
-                                  className="text-black hover:underline font-medium"
-                                >
-                                  gitdesign/{c.file_key}
-                                </button>
-                                <span>&middot;</span>
-                                <span>{timeAgo(c.timestamp)}</span>
-                              </div>
+                              )}
                             </div>
                           </div>
 
-                          {/* Expandable commits diff details */}
-                          {isExpanded && (
-                            <div className="bg-[#fafafa]/50 border-t border-[#e5e5e5]/40 p-md flex flex-col gap-sm">
-                              <h3 className="text-[11px] font-bold text-[#555555] uppercase tracking-wider">
-                                Diff Analysis ({c.frame_name} on {c.page_name})
-                              </h3>
-                              {loadingDiff ? (
-                                <div className="py-sm flex items-center gap-xs text-[#666666] text-[12px]">
-                                  <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
-                                  Analyzing snapshot files...
-                                </div>
-                              ) : diffData ? (
-                                <div className="flex flex-col gap-sm">
-                                  {/* Added list */}
-                                  {diffData.added.length > 0 && (
-                                    <div className="flex flex-col gap-xs">
-                                      <span className="text-[10px] font-bold text-green-700">Added Layers:</span>
-                                      <div className="flex flex-col gap-[2px] pl-sm border-l border-green-300">
-                                        {diffData.added.map(node => (
-                                          <div key={node.id} className="text-[11px] text-black font-mono">
-                                            + {node.name} <span className="text-[#888888] text-[9px]">({node.type})</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Removed list */}
-                                  {diffData.removed.length > 0 && (
-                                    <div className="flex flex-col gap-xs">
-                                      <span className="text-[10px] font-bold text-red-700">Removed Layers:</span>
-                                      <div className="flex flex-col gap-[2px] pl-sm border-l border-red-300">
-                                        {diffData.removed.map(node => (
-                                          <div key={node.id} className="text-[11px] text-[#666666] font-mono line-through">
-                                            - {node.name} <span className="text-[#888888] text-[9px]">({node.type})</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Modified list */}
-                                  {diffData.modified.length > 0 && (
-                                    <div className="flex flex-col gap-xs">
-                                      <span className="text-[10px] font-bold text-yellow-700">Modified Layers:</span>
-                                      <div className="flex flex-col gap-[2px] pl-sm border-l border-yellow-300">
-                                        {diffData.modified.map(node => (
-                                          <div key={node.id} className="text-[11px] text-black font-mono flex flex-col gap-[2px]">
-                                            <div>~ {node.name} <span className="text-[#888888] text-[9px]">({node.type})</span></div>
-                                            {node.changedProps && node.changedProps.length > 0 && (
-                                              <div className="text-[9px] text-[#666666] pl-sm">
-                                                Modified: {node.changedProps.join(", ")}
-                                              </div>
-                                            )}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {diffData.added.length === 0 && diffData.removed.length === 0 && diffData.modified.length === 0 && (
-                                    <div className="text-[11px] text-[#666666] italic">
-                                      No layer properties changed compared to previous version.
-                                    </div>
-                                  )}
-                                </div>
-                              ) : null}
+                          {/* Snapshot thumbnail */}
+                          {c.snapshot_url && (
+                            <div className="flex-shrink-0 w-14 h-10 rounded overflow-hidden border border-[#e5e5e5] bg-[#f5f5f5] opacity-80 group-hover:opacity-100 transition-opacity">
+                              <img
+                                src={c.snapshot_url}
+                                alt=""
+                                className="w-full h-full object-cover"
+                                onError={(e) => { e.target.style.display = "none"; }}
+                              />
                             </div>
                           )}
+
+                          {/* Arrow indicator */}
+                          <div className="flex-shrink-0 flex items-center self-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="material-symbols-outlined text-[16px] text-[#888]">chevron_right</span>
+                          </div>
                         </div>
                       );
                     })
@@ -599,21 +587,26 @@ export default function DashboardPage() {
                     <span className="text-[16px] font-bold font-sans text-black">{commits.length}</span>
                   </div>
                   <div className="flex items-center justify-between border-b border-[#f5f5f5]/40 pb-base">
-                    <span className="text-[12px] text-[#555555]">Pull Requests</span>
+                    <span className="text-[12px] text-[#555555]">Design Files</span>
                     <span className="text-[16px] font-bold font-sans text-black">
-                      {Math.floor(commits.length * 0.1) + 2}
+                      {reposList.length}
                     </span>
                   </div>
                   <div className="flex items-center justify-between border-b border-[#f5f5f5]/40 pb-base">
-                    <span className="text-[12px] text-[#555555]">Issues Resolved</span>
+                    <span className="text-[12px] text-[#555555]">Notifications</span>
                     <span className="text-[16px] font-bold font-sans text-black">
-                      {commits.filter(c => c.node_count > 10).length}
+                      {notifications.filter(n => !n.read).length > 0 ? (
+                        <span className="flex items-center gap-1">
+                          {notifications.filter(n => !n.read).length}
+                          <span className="text-[10px] text-[#888] font-normal">unread</span>
+                        </span>
+                      ) : notifications.length}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[12px] text-[#555555]">Followers</span>
+                    <span className="text-[12px] text-[#555555]">Contributors</span>
                     <span className="text-[16px] font-bold font-sans text-black">
-                      {4892 + commits.length}
+                      {[...new Set(commits.map(c => c.author))].filter(Boolean).length}
                     </span>
                   </div>
                 </div>
