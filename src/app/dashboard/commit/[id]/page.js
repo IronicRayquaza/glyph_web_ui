@@ -32,8 +32,10 @@ import {
   Loader2,
   X,
   Code,
+  Columns,
 } from "lucide-react";
 import DesignInspectPanel from "@/components/dashboard/DesignInspectPanel";
+import SideBySideDiffViewer from "@/components/dashboard/SideBySideDiffViewer";
 
 const CHANGED_PROP_LABELS = {
   name: "Name",
@@ -235,6 +237,8 @@ export default function CommitDetailPage() {
 
   const [user, setUser] = useState(null);
   const [commit, setCommit] = useState(null);
+  const [allCommits, setAllCommits] = useState([]);
+  const [selectedBaseCommit, setSelectedBaseCommit] = useState(null);
   const [diff, setDiff] = useState(null);
   const [loading, setLoading] = useState(true);
   const [snapshotError, setSnapshotError] = useState(false);
@@ -296,14 +300,34 @@ export default function CommitDetailPage() {
 
       // Fetch parent commit for diff calculation
       let parentNodes = [];
+      let parentObj = null;
+
+      // Fetch all commits in the same repository file
+      const { data: fileCommits } = await supabase
+        .from("dvc_commits")
+        .select("id, file_key, message, author, timestamp, snapshot_url, nodes, parent_id")
+        .eq("file_key", c.file_key)
+        .order("timestamp", { ascending: false });
+
+      setAllCommits(fileCommits || []);
+
       if (c.parent_id) {
-        const { data: parentRows } = await supabase
-          .from("dvc_commits")
-          .select("nodes")
-          .eq("id", c.parent_id);
-        parentNodes = parentRows?.[0]?.nodes || [];
+        parentObj = fileCommits?.find((item) => item.id === c.parent_id);
+        if (!parentObj) {
+          const { data: parentRows } = await supabase
+            .from("dvc_commits")
+            .select("id, file_key, message, author, timestamp, snapshot_url, nodes")
+            .eq("id", c.parent_id);
+          parentObj = parentRows?.[0];
+        }
+        parentNodes = parentObj?.nodes || [];
+      } else {
+        // Fallback: previous commit in history
+        parentObj = fileCommits?.find((item) => item.id !== c.id);
+        parentNodes = parentObj?.nodes || [];
       }
 
+      setSelectedBaseCommit(parentObj || null);
       const currentNodes = c.nodes || [];
       setDiff(computeDiff(currentNodes, parentNodes));
       await fetchNotifications(currentUser.id);
@@ -600,11 +624,11 @@ export default function CommitDetailPage() {
           {/* Right Column: Layer & Node Diff Inspection / Developer Specs */}
           <div className="lg:col-span-3 flex flex-col gap-4">
             {/* View Mode Tabs */}
-            <div className="flex items-center gap-2 border-b border-[#e5e5e5]/60 pb-2">
+            <div className="flex items-center gap-2 border-b border-[#e5e5e5]/60 pb-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => setActiveRightTab("diff")}
-                className={`flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                className={`flex items-center gap-1.5 text-[12px] font-semibold px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
                   activeRightTab === "diff"
                     ? "bg-black text-white shadow-xs"
                     : "bg-white/60 text-[#666] hover:bg-white hover:text-black border border-[#e0e0e4]"
@@ -616,7 +640,7 @@ export default function CommitDetailPage() {
               <button
                 type="button"
                 onClick={() => setActiveRightTab("inspect")}
-                className={`flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                className={`flex items-center gap-1.5 text-[12px] font-semibold px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
                   activeRightTab === "inspect"
                     ? "bg-black text-white shadow-xs"
                     : "bg-white/60 text-[#666] hover:bg-white hover:text-black border border-[#e0e0e4]"
@@ -625,9 +649,28 @@ export default function CommitDetailPage() {
                 <Code className="w-3.5 h-3.5 text-amber-400" />
                 📐 Developer Inspect Mode
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveRightTab("split")}
+                className={`flex items-center gap-1.5 text-[12px] font-semibold px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                  activeRightTab === "split"
+                    ? "bg-black text-white shadow-xs"
+                    : "bg-white/60 text-[#666] hover:bg-white hover:text-black border border-[#e0e0e4]"
+                }`}
+              >
+                <Columns className="w-3.5 h-3.5 text-blue-400" />
+                ↔ Side-by-Side Split
+              </button>
             </div>
 
-            {activeRightTab === "inspect" ? (
+            {activeRightTab === "split" ? (
+              <SideBySideDiffViewer
+                currentCommit={commit}
+                baseCommit={selectedBaseCommit}
+                allCommits={allCommits}
+                onSelectBaseCommit={setSelectedBaseCommit}
+              />
+            ) : activeRightTab === "inspect" ? (
               <DesignInspectPanel nodes={commit?.nodes || []} />
             ) : (
               <>

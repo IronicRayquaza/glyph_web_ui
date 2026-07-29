@@ -70,11 +70,11 @@ export default function RecentCommits({ filteredCommits = [], onSelectFile, time
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (onSelectFile) onSelectFile(c.file_key);
+                        router.push(`/dashboard/repos/${encodeURIComponent(c.frame_name || c.file_key)}`);
                       }}
                       className="font-medium text-black hover:underline"
                     >
-                      gitdesign/{c.file_key}
+                      gitdesign/{c.frame_name || c.file_key}
                     </button>
                     <span>&middot;</span>
                     <span>{timeAgo(c.timestamp)}</span>

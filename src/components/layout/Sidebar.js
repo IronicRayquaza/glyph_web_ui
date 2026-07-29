@@ -25,20 +25,29 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [unreadPrCount, setUnreadPrCount] = useState(0);
+  const [repoKeys, setRepoKeys] = useState([]);
 
   useEffect(() => {
-    async function fetchUnreadPrs() {
+    async function fetchData() {
       try {
-        const { data } = await supabase
+        const { data: prs } = await supabase
           .from("dvc_pull_requests")
           .select("id")
           .in("status", ["open", "approved", "changes_requested"]);
-        if (data) setUnreadPrCount(data.length);
+        if (prs) setUnreadPrCount(prs.length);
+
+        const { data: commits } = await supabase
+          .from("dvc_commits")
+          .select("frame_name, file_key");
+        if (commits) {
+          const keys = Array.from(new Set(commits.map((c) => c.frame_name || c.file_key).filter(Boolean)));
+          setRepoKeys(keys);
+        }
       } catch (e) {
-        // silent fallback if table does not exist
+        // silent fallback
       }
     }
-    fetchUnreadPrs();
+    fetchData();
   }, [pathname]);
 
   return (
@@ -55,7 +64,7 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation Links */}
-      <nav className="grow py-3 flex flex-col justify-between">
+      <nav className="grow py-3 flex flex-col justify-between overflow-y-auto custom-scrollbar">
         <div className="flex flex-col gap-0.5">
           {NAV_ITEMS.map((tab) => {
             const Icon = tab.Icon;
@@ -68,18 +77,7 @@ export default function Sidebar() {
               isSelected = pathname?.startsWith("/dashboard/activity");
             }
 
-            if (!tab.enabled) {
-              return (
-                <div
-                  key={tab.id}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-[#888888] opacity-50 cursor-not-allowed select-none"
-                  title="Coming soon"
-                >
-                  <Icon className="w-4.5 h-4.5 shrink-0" />
-                  <span className="truncate">{tab.id}</span>
-                </div>
-              );
-            }
+            if (!tab.enabled) return null;
 
             return (
               <Link
@@ -87,20 +85,44 @@ export default function Sidebar() {
                 href={tab.href}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-left transition-colors relative ${
                   isSelected
-                    ? "bg-white/80 backdrop-blur-sm font-bold text-black border-l-[3px] border-black"
+                    ? "bg-white/80 backdrop-blur-sm font-semibold text-black border-l-[3px] border-black"
                     : "text-[#555555] hover:bg-[#e2e2e2]/40 hover:text-black font-medium"
                 }`}
               >
                 <Icon className={`w-4.5 h-4.5 shrink-0 ${isSelected ? "text-black" : "text-[#666666]"}`} />
                 <span className="truncate">{tab.id}</span>
                 {tab.id === "Pull Requests" && unreadPrCount > 0 && (
-                  <span className="ml-auto bg-black text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center text-center shrink-0">
+                  <span className="ml-auto bg-black text-white text-[10px] font-semibold rounded-full h-5 w-5 flex items-center justify-center text-center shrink-0">
                     {unreadPrCount}
                   </span>
                 )}
               </Link>
             );
           })}
+
+          {/* DESIGN REPOSITORIES LIST */}
+          <div className="mt-4 px-4 flex flex-col gap-1">
+            <span className="text-[10px] font-semibold text-[#888] uppercase tracking-wider mb-1">
+              Repositories
+            </span>
+            {repoKeys.map((key) => {
+              const isSelected = pathname === `/dashboard/repos/${encodeURIComponent(key)}`;
+              return (
+                <Link
+                  key={key}
+                  href={`/dashboard/repos/${encodeURIComponent(key)}`}
+                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
+                    isSelected
+                      ? "bg-black text-white shadow-xs"
+                      : "text-[#555] hover:bg-white/70 hover:text-black"
+                  }`}
+                >
+                  <FolderOpen className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">gitdesign/{key}</span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
 
         {/* Footer Actions */}

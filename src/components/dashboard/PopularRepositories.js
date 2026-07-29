@@ -1,10 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 export default function PopularRepositories({ reposList = [], onSelectFile }) {
+  const router = useRouter();
+
   return (
     <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/40 rounded-xl overflow-hidden flex flex-col shadow-xs z-10">
       <div className="border-b border-[#e5e5e5]/40 px-md py-sm">
-        <h2 className="text-[13px] font-bold text-black font-sans">Popular Repositories</h2>
+        <h2 className="text-[13px] font-semibold text-black font-sans">Popular Repositories</h2>
       </div>
 
       <div className="p-md flex flex-col gap-md">
@@ -21,8 +25,8 @@ export default function PopularRepositories({ reposList = [], onSelectFile }) {
               <div className="flex items-center justify-between">
                 <button
                   type="button"
-                  onClick={() => onSelectFile && onSelectFile(repo.name)}
-                  className="text-[13px] font-bold text-black hover:underline text-left truncate max-w-30 cursor-pointer"
+                  onClick={() => router.push(`/dashboard/repos/${encodeURIComponent(repo.name)}`)}
+                  className="text-[13px] font-semibold text-black hover:underline text-left truncate max-w-30 cursor-pointer"
                   title={repo.name}
                 >
                   {repo.name}

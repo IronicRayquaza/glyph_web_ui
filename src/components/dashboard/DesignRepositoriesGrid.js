@@ -44,7 +44,8 @@ export default function DesignRepositoriesGrid({ reposList = [], commits = [], o
             return (
               <div
                 key={repo.name}
-                className="border border-[#e0e0e0]/60 hover:border-black rounded-lg overflow-hidden bg-white/60 hover:bg-white/80 backdrop-blur-md shadow-none hover:shadow-md transition-all flex flex-col justify-between group"
+                onClick={() => router.push(`/dashboard/repos/${encodeURIComponent(repo.name)}`)}
+                className="border border-[#e0e0e0]/60 hover:border-black rounded-xl overflow-hidden bg-white/60 hover:bg-white/90 backdrop-blur-md shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer"
               >
                 {/* Thumbnail Preview Banner */}
                 <div className="h-32 bg-[#f4f4f6] relative overflow-hidden flex items-center justify-center border-b border-[#eeeeee]">
@@ -60,7 +61,7 @@ export default function DesignRepositoriesGrid({ reposList = [], commits = [], o
                       <span className="text-[11px]">Figma Canvas Preview</span>
                     </div>
                   )}
-                  <span className="absolute top-2 right-2 bg-black/70 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                  <span className="absolute top-2 right-2 bg-black/70 backdrop-blur-md text-white text-[10px] font-semibold px-2 py-0.5 rounded flex items-center gap-1">
                     <GitBranch className="w-3 h-3 text-white" />
                     main
                   </span>
@@ -70,14 +71,10 @@ export default function DesignRepositoriesGrid({ reposList = [], commits = [], o
                 <div className="p-4 flex flex-col gap-3 grow justify-between">
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() => onSelectFile && onSelectFile(repo.name)}
-                        className="text-[14px] font-bold text-black hover:underline text-left truncate font-sans cursor-pointer"
-                      >
+                      <span className="text-[14px] font-semibold text-black group-hover:underline text-left truncate font-sans">
                         gitdesign/{repo.name}
-                      </button>
-                      <div className="flex items-center gap-1 text-[11px] font-semibold text-[#666666]">
+                      </span>
+                      <div className="flex items-center gap-1 text-[11px] font-medium text-[#666666]">
                         <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                         <span>{repo.commits * 10}</span>
                       </div>

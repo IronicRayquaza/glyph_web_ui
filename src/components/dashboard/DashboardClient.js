@@ -192,18 +192,20 @@ export default function DashboardClient() {
     cols.push(colCells);
   }
 
-  // Extract repositories map & list
+  // Extract repositories map & list by Frame Component Name
   const reposMap = {};
   commits.forEach((c) => {
-    if (!reposMap[c.file_key]) {
-      reposMap[c.file_key] = {
-        name: c.file_key,
+    const repoName = c.frame_name || c.file_key;
+    if (!reposMap[repoName]) {
+      reposMap[repoName] = {
+        name: repoName,
+        fileKey: c.file_key,
         commits: 0,
         recentTimestamp: c.timestamp,
-        description: `Design systems repository for the "${c.file_key}" components and templates.`,
+        description: `Figma frame component repository for "${repoName}".`,
       };
     }
-    reposMap[c.file_key].commits += 1;
+    reposMap[repoName].commits += 1;
   });
   const reposList = Object.values(reposMap).sort((a, b) => b.commits - a.commits);
 
