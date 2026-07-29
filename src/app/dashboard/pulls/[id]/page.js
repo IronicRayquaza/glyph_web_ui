@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/layout/Header";
+import DesignInspectPanel from "@/components/dashboard/DesignInspectPanel";
 
 const STATUS_CONFIG = {
   open: { bg: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500", label: "Open" },
@@ -228,7 +229,8 @@ export default function PRDetailPage() {
   const [comments, setComments] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [commits, setCommits] = useState([]);
-  const [activeTab, setActiveTab] = useState("conversation"); // "conversation" | "diff" | "files"
+  const [inspectNodes, setInspectNodes] = useState([]);
+  const [activeTab, setActiveTab] = useState("conversation"); // "conversation" | "diff" | "files" | "inspect"
 
   // Visual diff state
   const [beforeSnapshot, setBeforeSnapshot] = useState(null);
@@ -348,6 +350,17 @@ export default function PRDetailPage() {
           setBeforeSnapshot(withSnapshot[1].snapshot_url);
         } else if (withSnapshot.length === 1) {
           setAfterSnapshot(withSnapshot[0].snapshot_url);
+        }
+
+        // Fetch nodes for inspect mode
+        const { data: latestCommitNodes } = await supabase
+          .from("dvc_commits")
+          .select("nodes")
+          .eq("file_key", prData.file_key)
+          .order("timestamp", { ascending: false })
+          .limit(1);
+        if (latestCommitNodes?.[0]?.nodes) {
+          setInspectNodes(latestCommitNodes[0].nodes);
         }
       }
 
@@ -570,6 +583,7 @@ export default function PRDetailPage() {
           {[
             { id: "conversation", label: "Conversation", count: comments.length, icon: "forum" },
             { id: "diff", label: "Visual Diff Comparison", icon: "compare" },
+            { id: "inspect", label: "Developer Inspect Mode", icon: "code" },
             { id: "files", label: "Commits & Node History", count: commits.length, icon: "history" },
           ].map((tab) => {
             const isSelected = activeTab === tab.id;
@@ -608,13 +622,13 @@ export default function PRDetailPage() {
             {activeTab === "conversation" && (
               <div className="flex flex-col gap-6">
                 {/* Original PR Description Card */}
-                <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl overflow-hidden shadow-xs">
-                  <div className="flex items-center justify-between px-5 py-3 bg-[#f8f8fa] border-b border-[#e5e5e5]/60">
+                <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl overflow-hidden shadow-xs">
+                  <div className="flex items-center justify-between px-5 py-3 bg-white/50 border-b border-[#e5e5e5]/40">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-[13px] text-black">{pr.author}</span>
                       <span className="text-[11px] text-[#888888]">commented {timeAgo(pr.created_at)}</span>
                     </div>
-                    <span className="text-[11px] font-bold text-black bg-white px-2.5 py-0.5 rounded border border-[#e0e0e0]">
+                    <span className="text-[11px] font-bold text-black bg-white/80 px-2.5 py-0.5 rounded border border-[#e0e0e0]/60">
                       Author
                     </span>
                   </div>
@@ -635,7 +649,7 @@ export default function PRDetailPage() {
 
             {/* Visual Diff Comparison Tab */}
             {activeTab === "diff" && (
-              <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-xs flex flex-col gap-5">
+              <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/60 rounded-xl p-6 shadow-xs flex flex-col gap-5">
                 <div className="flex items-center justify-between border-b border-[#f0f0f2] pb-3">
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[20px] text-black">compare</span>
@@ -706,12 +720,30 @@ export default function PRDetailPage() {
                 </div>
               </div>
             )}
+
+            {/* Developer Inspect Mode Tab */}
+            {activeTab === "inspect" && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between bg-white/70 backdrop-blur-lg p-4 rounded-xl border border-[#e5e5e5]/50 shadow-xs">
+                  <div>
+                    <h3 className="text-[14px] font-bold text-black flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px]">code</span>
+                      Developer Spec Handoff Mode
+                    </h3>
+                    <p className="text-[11px] text-[#666] mt-0.5">
+                      Inspect generated CSS, dimensions, color HEX codes, and typography directly from this PR.
+                    </p>
+                  </div>
+                </div>
+                <DesignInspectPanel nodes={inspectNodes} />
+              </div>
+            )}
           </div>
 
           {/* Right Column (1/3 width): Merge Box & Review Controls */}
           <div className="flex flex-col gap-6">
             {/* Merge Control Card */}
-            <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-xs flex flex-col gap-4">
+            <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-6 shadow-xs flex flex-col gap-4">
               <h2 className="text-[16px] font-bold text-black font-sans tracking-tight border-b border-[#f0f0f2] pb-3">
                 Merge Status
               </h2>
@@ -767,7 +799,7 @@ export default function PRDetailPage() {
 
             {/* Submit Review Form Card */}
             {!isMerged && (
-              <form onSubmit={handleReviewSubmit} className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-xs flex flex-col gap-4">
+              <form onSubmit={handleReviewSubmit} className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-6 shadow-xs flex flex-col gap-4">
                 <h2 className="text-[16px] font-bold text-black font-sans tracking-tight border-b border-[#f0f0f2] pb-3">
                   Submit a Review
                 </h2>
@@ -822,7 +854,7 @@ export default function PRDetailPage() {
             )}
 
             {/* Target Design File Metadata */}
-            <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-xs flex flex-col gap-3">
+            <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-6 shadow-xs flex flex-col gap-3">
               <span className="text-[11px] font-bold text-[#666666] uppercase tracking-wider">
                 Target Design File
               </span>

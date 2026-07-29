@@ -5,7 +5,7 @@ export default function StatsGlance({ commits = [], reposList = [], notification
   const uniqueContributorsCount = [...new Set(commits.map((c) => c.author))].filter(Boolean).length;
 
   return (
-    <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/40 p-md rounded flex flex-col gap-sm shadow-sm z-10">
+    <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/40 p-md rounded-xl flex flex-col gap-sm shadow-xs z-10">
       <h2 className="text-[13px] font-bold text-black font-sans">Stats at a glance</h2>
 
       <div className="flex flex-col gap-sm pt-base">

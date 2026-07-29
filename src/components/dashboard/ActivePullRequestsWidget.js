@@ -30,7 +30,7 @@ export default function ActivePullRequestsWidget({ pullRequests = [] }) {
   );
 
   return (
-    <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-sm flex flex-col justify-between h-full gap-4">
+    <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-6 shadow-xs flex flex-col justify-between h-full gap-4">
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

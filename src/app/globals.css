@@ -112,20 +112,68 @@ body {
   font-variation-settings: 'FILL' 1;
 }
 
-/* Scrollbar styles */
-.scrollbar-thin::-webkit-scrollbar {
-  height: 4px;
-  width: 4px;
-}
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: var(--color-outline-variant);
-  border-radius: 2px;
+/* Highly Visible Custom Scrollbar System */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
 }
 
-/* Hide scrollbar for clean UI elements */
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #999999;
+  border-radius: 9999px;
+  border: 1.5px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #333333;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #999999 rgba(0, 0, 0, 0.04);
+}
+
+/* Custom Scrollbar Utility for Panels and Cards */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #888888;
+  border-radius: 9999px;
+  border: 1.5px solid transparent;
+  background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #111111;
+  background-clip: padding-box;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #888888 rgba(0, 0, 0, 0.05);
+}
+
+/* Hide scrollbar utility */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

@@ -118,7 +118,7 @@ export default function PullRequestsPage() {
         </div>
 
         {/* Filters + Search Bar */}
-        <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/40 rounded-lg overflow-hidden shadow-sm mb-4">
+        <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl overflow-hidden shadow-xs mb-4">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#e5e5e5]/40 gap-3">
             {/* Status Tabs */}
             <div className="flex items-center gap-1">
@@ -133,7 +133,7 @@ export default function PullRequestsPage() {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-semibold transition-colors cursor-pointer ${
                     activeFilter === f.key
                       ? "bg-black text-white"
-                      : "text-[#555555] hover:bg-[#f0f0f0] hover:text-black"
+                      : "text-[#555555] hover:bg-white/60 hover:text-black"
                   }`}
                 >
                   <span className="material-symbols-outlined text-[14px]">{f.icon}</span>
@@ -155,7 +155,7 @@ export default function PullRequestsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search pull requests…"
-                className="pl-9 pr-4 py-1.75 border border-[#e0e0e0] rounded bg-[#fafafa] text-[12px] text-black placeholder-[#aaa] outline-none focus:border-black transition-colors w-55"
+                className="pl-9 pr-4 py-1.75 border border-[#e0e0e0]/60 rounded-lg bg-white/50 hover:bg-white/80 focus:bg-white text-[12px] text-black placeholder-[#aaa] outline-none focus:border-black transition-colors w-55"
               />
             </div>
           </div>

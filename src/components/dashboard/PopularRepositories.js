@@ -2,7 +2,7 @@
 
 export default function PopularRepositories({ reposList = [], onSelectFile }) {
   return (
-    <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/40 rounded overflow-hidden flex flex-col shadow-sm z-10">
+    <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/40 rounded-xl overflow-hidden flex flex-col shadow-xs z-10">
       <div className="border-b border-[#e5e5e5]/40 px-md py-sm">
         <h2 className="text-[13px] font-bold text-black font-sans">Popular Repositories</h2>
       </div>

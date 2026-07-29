@@ -13,7 +13,7 @@ export default function DesignRepositoriesGrid({ reposList = [], commits = [], o
   });
 
   return (
-    <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-sm flex flex-col justify-between h-full gap-4">
+    <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-6 shadow-xs flex flex-col justify-between h-full gap-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <FolderOpen className="w-5 h-5 text-black" />
@@ -44,7 +44,7 @@ export default function DesignRepositoriesGrid({ reposList = [], commits = [], o
             return (
               <div
                 key={repo.name}
-                className="border border-[#e0e0e0] hover:border-black rounded-lg overflow-hidden bg-white/90 shadow-none hover:shadow-md transition-all flex flex-col justify-between group"
+                className="border border-[#e0e0e0]/60 hover:border-black rounded-lg overflow-hidden bg-white/60 hover:bg-white/80 backdrop-blur-md shadow-none hover:shadow-md transition-all flex flex-col justify-between group"
               >
                 {/* Thumbnail Preview Banner */}
                 <div className="h-32 bg-[#f4f4f6] relative overflow-hidden flex items-center justify-center border-b border-[#eeeeee]">
@@ -52,7 +52,7 @@ export default function DesignRepositoriesGrid({ reposList = [], commits = [], o
                     <img
                       src={snapshotUrl}
                       alt={repo.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover"
                     />
                   ) : (
                     <div className="flex flex-col items-center gap-1 text-[#aaaaaa]">

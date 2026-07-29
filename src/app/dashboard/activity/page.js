@@ -334,7 +334,7 @@ export default function ActivityPage() {
         {/* Page Title */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <h1 className="text-[26px] font-sans tracking-tight text-black font-bold">
+            <h1 className="text-[24px] font-sans tracking-tight text-black font-semibold">
               Activity Stream
             </h1>
             <p className="text-[13px] text-[#666666]">
@@ -344,7 +344,7 @@ export default function ActivityPage() {
 
           <Link
             href="/dashboard/pulls/new"
-            className="bg-black text-white hover:bg-black/90 font-bold text-[12px] px-4 py-2 rounded flex items-center gap-1.5 transition-colors shadow-sm shrink-0 cursor-pointer"
+            className="bg-black text-white hover:bg-black/90 font-medium text-[12px] px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs shrink-0 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[16px]">add</span>
             New Pull Request
@@ -352,7 +352,7 @@ export default function ActivityPage() {
         </div>
 
         {/* Filter Toolbar Card */}
-        <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-4 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 relative z-30">
+        <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-4 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 relative z-30">
           {/* Category Tabs */}
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
             {[
@@ -368,16 +368,16 @@ export default function ActivityPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all cursor-pointer shrink-0 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all cursor-pointer shrink-0 ${
                     isSelected
                       ? "bg-black text-white shadow-xs"
-                      : "text-[#555555] hover:bg-[#f0f0f2] hover:text-black"
+                      : "text-[#555555] hover:bg-white/60 hover:text-black"
                   }`}
                 >
                   <span className="material-symbols-outlined text-[15px]">{tab.icon}</span>
                   <span>{tab.label}</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
                       isSelected ? "bg-white/20 text-white" : "bg-[#f0f0f2] text-[#666666]"
                     }`}
                   >
@@ -446,10 +446,10 @@ export default function ActivityPage() {
               <div key={dateHeader} className="flex flex-col gap-3">
                 {/* Date Group Header */}
                 <div className="flex items-center gap-3">
-                  <span className="text-[12px] font-bold uppercase tracking-wider text-[#666666] font-sans">
+                  <span className="text-[11px] font-medium text-[#666666] font-sans">
                     {dateHeader}
                   </span>
-                  <div className="grow border-t border-[#e0e0e2]" />
+                  <div className="grow border-t border-[#e0e0e2]/60" />
                 </div>
 
                 {/* Group Activity Cards */}
@@ -460,7 +460,7 @@ export default function ActivityPage() {
                       <div
                         key={act.id}
                         onClick={() => router.push(act.link)}
-                        className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 hover:border-black rounded-xl p-4 shadow-xs hover:shadow-md transition-all flex items-start justify-between gap-4 group cursor-pointer"
+                        className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 hover:border-black/60 rounded-xl p-4 shadow-xs hover:shadow-md transition-all flex items-start justify-between gap-4 group cursor-pointer"
                       >
                         <div className="flex items-start gap-3.5 min-w-0 grow">
                           {/* Type Icon */}
@@ -473,18 +473,18 @@ export default function ActivityPage() {
                           {/* Details */}
                           <div className="flex flex-col gap-1 min-w-0 grow">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-[14px] font-bold text-black group-hover:underline leading-snug">
+                              <span className="text-[13px] font-medium text-black group-hover:underline leading-snug">
                                 {act.title}
                               </span>
                               {act.status && (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-slate-100 text-slate-700 border-slate-300">
+                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-slate-100/80 text-slate-700 border-slate-300/80">
                                   {act.status}
                                 </span>
                               )}
                             </div>
 
                             <div className="flex items-center gap-2 text-[11px] text-[#666666] flex-wrap">
-                              <span className="font-bold text-black">by {act.author}</span>
+                              <span className="font-medium text-[#666]">by {act.author}</span>
                               <span>&middot;</span>
                               <button
                                 type="button"
@@ -492,7 +492,7 @@ export default function ActivityPage() {
                                   e.stopPropagation();
                                   setSelectedRepo(act.repo);
                                 }}
-                                className="text-black font-semibold hover:underline"
+                                className="text-black font-medium hover:underline"
                               >
                                 gitdesign/{act.repo}
                               </button>
@@ -529,7 +529,7 @@ export default function ActivityPage() {
                               <img
                                 src={act.snapshotUrl}
                                 alt="Activity preview"
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                className="w-full h-full object-cover"
                                 onError={(e) => {
                                   e.target.style.display = "none";
                                 }}

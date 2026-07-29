@@ -52,7 +52,7 @@ export default function MetricKpiCards({ commits = [], reposList = [], openPulls
         return (
           <div
             key={idx}
-            className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 hover:border-[#c5c5c5] rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-3 group"
+            className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 hover:border-[#c5c5c5]/80 rounded-xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 group"
           >
             <div className="flex items-start justify-between">
               <div className="flex flex-col">

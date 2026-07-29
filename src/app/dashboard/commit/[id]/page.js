@@ -31,7 +31,9 @@ import {
   LayoutGrid,
   Loader2,
   X,
+  Code,
 } from "lucide-react";
+import DesignInspectPanel from "@/components/dashboard/DesignInspectPanel";
 
 const CHANGED_PROP_LABELS = {
   name: "Name",
@@ -238,6 +240,7 @@ export default function CommitDetailPage() {
   const [snapshotError, setSnapshotError] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [activeRightTab, setActiveRightTab] = useState("diff");
 
   // Header State
   const [notifications, setNotifications] = useState([]);
@@ -450,7 +453,7 @@ export default function CommitDetailPage() {
         </div>
 
         {/* Commit Hero Card */}
-        <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl overflow-hidden shadow-sm flex flex-col">
+        <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl overflow-hidden shadow-xs flex flex-col">
           {/* Header Message */}
           <div className="p-6 border-b border-[#f0f0f0] flex flex-col gap-3">
             <h1 className="text-[22px] font-bold text-black font-sans leading-tight tracking-tight">
@@ -474,7 +477,7 @@ export default function CommitDetailPage() {
           </div>
 
           {/* Metadata Strip */}
-          <div className="px-6 py-3.5 bg-[#fafafa]/90 flex items-center gap-4 flex-wrap text-[11px] border-t border-[#f2f2f4]">
+          <div className="px-6 py-3.5 bg-white/50 flex items-center gap-4 flex-wrap text-[11px] border-t border-[#f2f2f4]/60">
             <div className="flex items-center gap-1.5 text-[#555]">
               <FolderGit2 className="w-3.5 h-3.5 text-black" />
               <span>Repository:</span>
@@ -536,7 +539,7 @@ export default function CommitDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
           {/* Left Column: Visual Design Snapshot Banner */}
           <div className="lg:col-span-2">
-            <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl overflow-hidden shadow-sm sticky top-24 flex flex-col gap-4 p-5">
+            <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl overflow-hidden shadow-xs sticky top-24 flex flex-col gap-4 p-5">
               <div className="flex items-center justify-between pb-3 border-b border-[#f0f0f0]">
                 <div className="flex items-center gap-2">
                   <ImageIcon className="w-4.5 h-4.5 text-black" />
@@ -555,7 +558,7 @@ export default function CommitDetailPage() {
                     <img
                       src={commit.snapshot_url}
                       alt={`Snapshot — ${commit.frame_name || "Figma Frame"}`}
-                      className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-102"
+                      className="w-full h-full object-contain p-2"
                       onError={() => setSnapshotError(true)}
                     />
                     <button
@@ -594,9 +597,41 @@ export default function CommitDetailPage() {
             </div>
           </div>
 
-          {/* Right Column: Layer & Node Diff Inspection */}
+          {/* Right Column: Layer & Node Diff Inspection / Developer Specs */}
           <div className="lg:col-span-3 flex flex-col gap-4">
-            {/* Diff Summary Bar */}
+            {/* View Mode Tabs */}
+            <div className="flex items-center gap-2 border-b border-[#e5e5e5]/60 pb-2">
+              <button
+                type="button"
+                onClick={() => setActiveRightTab("diff")}
+                className={`flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                  activeRightTab === "diff"
+                    ? "bg-black text-white shadow-xs"
+                    : "bg-white/60 text-[#666] hover:bg-white hover:text-black border border-[#e0e0e4]"
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                Layer Changes
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveRightTab("inspect")}
+                className={`flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                  activeRightTab === "inspect"
+                    ? "bg-black text-white shadow-xs"
+                    : "bg-white/60 text-[#666] hover:bg-white hover:text-black border border-[#e0e0e4]"
+                }`}
+              >
+                <Code className="w-3.5 h-3.5 text-amber-400" />
+                📐 Developer Inspect Mode
+              </button>
+            </div>
+
+            {activeRightTab === "inspect" ? (
+              <DesignInspectPanel nodes={commit?.nodes || []} />
+            ) : (
+              <>
+                {/* Diff Summary Bar */}
             {diff && (
               <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl px-6 py-4 shadow-sm flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-2">
@@ -639,7 +674,7 @@ export default function CommitDetailPage() {
 
             {/* Layer Changes List Section */}
             {diff && (
-              <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-sm flex flex-col gap-4">
+              <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-6 shadow-xs flex flex-col gap-4 h-[438px] max-h-[438px]">
                 <div className="flex items-center justify-between pb-3 border-b border-[#f0f0f0]">
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col gap-0.5 shrink-0">
@@ -655,7 +690,7 @@ export default function CommitDetailPage() {
                   )}
                 </div>
 
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 max-h-[355px] overflow-y-auto pr-1 custom-scrollbar">
                   {/* Added layers */}
                   {diff.added.length > 0 && (
                     <div className="flex flex-col gap-2">
@@ -718,6 +753,8 @@ export default function CommitDetailPage() {
                   )}
                 </div>
               </div>
+            )}
+            </>
             )}
           </div>
         </div>

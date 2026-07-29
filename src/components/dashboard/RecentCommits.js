@@ -9,21 +9,21 @@ export default function RecentCommits({ filteredCommits = [], onSelectFile, time
   const displayedCommits = filteredCommits.slice(0, limit);
 
   return (
-    <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-sm flex flex-col justify-between h-full gap-4">
+    <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-6 shadow-xs flex flex-col justify-between h-full gap-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <History className="w-5 h-5 text-black" />
-          <h2 className="text-[16px] font-bold text-black font-sans tracking-tight">
+          <h2 className="text-[15px] font-semibold text-black font-sans tracking-tight">
             Recent Visual Commits
           </h2>
-          <span className="text-[11px] font-semibold text-[#666666] bg-[#f0f0f0] px-2 py-0.5 rounded-full border border-[#e0e0e0]">
+          <span className="text-[11px] font-medium text-[#666666] bg-[#f0f0f0] px-2 py-0.5 rounded-full border border-[#e0e0e0]">
             {filteredCommits.length}
           </span>
         </div>
 
         <Link
           href="/dashboard/activity"
-          className="text-[12px] font-bold text-black hover:underline cursor-pointer flex items-center gap-1"
+          className="text-[12px] font-medium text-black hover:underline cursor-pointer flex items-center gap-1"
         >
           View All Activity
           <ArrowRight className="w-3.5 h-3.5 text-black" />
@@ -40,7 +40,7 @@ export default function RecentCommits({ filteredCommits = [], onSelectFile, time
             <div
               key={c.id}
               onClick={() => router.push(`/dashboard/commit/${c.id}`)}
-              className="py-3.5 flex items-center justify-between hover:bg-white px-3 rounded-lg transition-colors cursor-pointer group"
+              className="py-3.5 flex items-center justify-between hover:bg-white/70 px-3 rounded-lg transition-colors cursor-pointer group"
             >
               {/* Left Side: Status Icon & Details */}
               <div className="flex items-start gap-3.5 min-w-0 grow">
@@ -56,13 +56,13 @@ export default function RecentCommits({ filteredCommits = [], onSelectFile, time
 
                 <div className="flex flex-col gap-1 min-w-0 grow">
                   <div className="flex items-center gap-2">
-                    <p className="text-[14px] font-bold text-black group-hover:underline truncate leading-snug">
+                    <p className="text-[13px] font-medium text-black group-hover:underline truncate leading-snug">
                       {c.message}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2 text-[11px] text-[#666666] flex-wrap">
-                    <span className="bg-[#f0f0f2] border border-[#e0e0e0] font-mono px-2 py-0.5 rounded text-[10px] text-black font-semibold">
+                    <span className="font-mono text-[10px] bg-white/80 border border-[#e0e0e0] px-1.5 py-0.5 rounded text-black font-semibold">
                       {c.id.slice(0, 7)}
                     </span>
                     <span>in</span>
@@ -72,18 +72,13 @@ export default function RecentCommits({ filteredCommits = [], onSelectFile, time
                         e.stopPropagation();
                         if (onSelectFile) onSelectFile(c.file_key);
                       }}
-                      className="text-black hover:underline font-bold"
+                      className="font-medium text-black hover:underline"
                     >
                       gitdesign/{c.file_key}
                     </button>
                     <span>&middot;</span>
                     <span>{timeAgo(c.timestamp)}</span>
-                    {c.author && (
-                      <>
-                        <span>&middot;</span>
-                        <span className="text-[#555555] font-medium">by {c.author}</span>
-                      </>
-                    )}
+                    <span className="text-[#999999]">&middot; {c.author}</span>
                   </div>
                 </div>
               </div>
@@ -91,11 +86,11 @@ export default function RecentCommits({ filteredCommits = [], onSelectFile, time
               {/* Right Side: Snapshot thumbnail & Arrow */}
               <div className="flex items-center gap-3 shrink-0 ml-4">
                 {c.snapshot_url && (
-                  <div className="w-16 h-11 rounded-md overflow-hidden border border-[#e0e0e0] bg-[#f5f5f7] shadow-sm group-hover:shadow-md transition-shadow">
+                  <div className="w-16 h-11 rounded-md overflow-hidden border border-[#e0e0e0] bg-[#f5f5f7] shadow-xs">
                     <img
                       src={c.snapshot_url}
                       alt="Commit Snapshot"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      className="w-full h-full object-cover"
                       onError={(e) => {
                         e.target.style.display = "none";
                       }}
