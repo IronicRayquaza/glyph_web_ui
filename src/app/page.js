@@ -149,7 +149,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] font-sans antialiased selection:bg-black selection:text-white flex flex-col relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] font-sans antialiased selection:bg-black selection:text-white flex flex-col relative">
       {/* ── BACKGROUND ATMOSPHERIC LIGHTING ── */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-250 h-125 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(0,0,0,0.07),rgba(255,255,255,0))]" />

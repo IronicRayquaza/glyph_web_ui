@@ -395,59 +395,59 @@ export default function DesignInspectPanel({
             {/* Spec Quick Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {/* Dimensions */}
-              <div className="p-2.5 rounded-lg bg-[#f8f9fc] border border-[#e5e5ed] flex flex-col gap-0.5">
-                <span className="text-[10px] font-semibold text-[#777] uppercase tracking-wider flex items-center gap-1">
-                  <Maximize2 className="w-3 h-3 text-black" />
+              <div className="p-2.5 rounded-lg bg-[#f8f9fc] border border-[#e5e5ed] flex flex-col gap-1 min-w-0">
+                <span className="text-[10px] font-medium text-[#666] uppercase tracking-wider flex items-center gap-1 whitespace-nowrap truncate">
+                  <Maximize2 className="w-3 h-3 text-[#555] shrink-0" />
                   Size
                 </span>
-                <span className="text-[12px] font-mono font-bold text-black">
+                <span className="text-[11px] font-mono font-normal text-slate-900 whitespace-nowrap truncate">
                   {selectedNode.width ? Math.round(selectedNode.width) : 0} &times; {selectedNode.height ? Math.round(selectedNode.height) : 0} px
                 </span>
               </div>
 
               {/* Position */}
-              <div className="p-2.5 rounded-lg bg-[#f8f9fc] border border-[#e5e5ed] flex flex-col gap-0.5">
-                <span className="text-[10px] font-semibold text-[#777] uppercase tracking-wider flex items-center gap-1">
-                  <Layout className="w-3 h-3 text-black" />
+              <div className="p-2.5 rounded-lg bg-[#f8f9fc] border border-[#e5e5ed] flex flex-col gap-1 min-w-0">
+                <span className="text-[10px] font-medium text-[#666] uppercase tracking-wider flex items-center gap-1 whitespace-nowrap truncate">
+                  <Layout className="w-3 h-3 text-[#555] shrink-0" />
                   Position
                 </span>
-                <span className="text-[12px] font-mono font-bold text-black">
+                <span className="text-[11px] font-mono font-normal text-slate-900 whitespace-nowrap truncate">
                   X: {selectedNode.x ? Math.round(selectedNode.x) : 0}, Y: {selectedNode.y ? Math.round(selectedNode.y) : 0}
                 </span>
               </div>
 
               {/* Fill Color */}
-              <div className="p-2.5 rounded-lg bg-[#f8f9fc] border border-[#e5e5ed] flex flex-col gap-0.5">
-                <span className="text-[10px] font-semibold text-[#777] uppercase tracking-wider flex items-center gap-1">
-                  <Palette className="w-3 h-3 text-black" />
+              <div className="p-2.5 rounded-lg bg-[#f8f9fc] border border-[#e5e5ed] flex flex-col gap-1 min-w-0">
+                <span className="text-[10px] font-medium text-[#666] uppercase tracking-wider flex items-center gap-1 whitespace-nowrap truncate">
+                  <Palette className="w-3 h-3 text-[#555] shrink-0" />
                   Fill Color
                 </span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 min-w-0">
                   {colorInfo ? (
                     <>
                       <div
                         className="w-3.5 h-3.5 rounded border border-black/20 shrink-0 shadow-2xs"
                         style={{ backgroundColor: colorInfo.hex }}
                       />
-                      <span className="text-[11px] font-mono font-bold text-black">{colorInfo.hex}</span>
+                      <span className="text-[11px] font-mono font-normal text-slate-900 whitespace-nowrap truncate">{colorInfo.hex}</span>
                     </>
                   ) : (
-                    <span className="text-[11px] text-[#888]">None</span>
+                    <span className="text-[11px] font-normal text-[#888]">None</span>
                   )}
                 </div>
               </div>
 
               {/* Typography / Border */}
-              <div className="p-2.5 rounded-lg bg-[#f8f9fc] border border-[#e5e5ed] flex flex-col gap-0.5">
-                <span className="text-[10px] font-semibold text-[#777] uppercase tracking-wider flex items-center gap-1">
-                  <Type className="w-3 h-3 text-black" />
-                  Font / Radius
+              <div className="p-2.5 rounded-lg bg-[#f8f9fc] border border-[#e5e5ed] flex flex-col gap-1 min-w-0">
+                <span className="text-[10px] font-medium text-[#666] uppercase tracking-wider flex items-center gap-1 whitespace-nowrap truncate">
+                  <Type className="w-3 h-3 text-[#555] shrink-0" />
+                  {selectedNode.type === "TEXT" ? "Font" : "Radius"}
                 </span>
-                <span className="text-[11px] font-bold text-black truncate">
+                <span className="text-[11px] font-normal text-slate-900 whitespace-nowrap truncate">
                   {selectedNode.type === "TEXT"
                     ? `${selectedNode.fontName?.family || "Inter"} ${selectedNode.fontSize ? Math.round(selectedNode.fontSize) + "px" : ""}`
                     : selectedNode.cornerRadius
-                      ? `Radius: ${Math.round(selectedNode.cornerRadius)}px`
+                      ? `${Math.round(selectedNode.cornerRadius)}px`
                       : "Standard"}
                 </span>
               </div>

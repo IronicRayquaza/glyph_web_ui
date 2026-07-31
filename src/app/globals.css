@@ -85,6 +85,10 @@
   --animate-marquee: marquee 30s linear infinite;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   background: var(--color-background);
   color: var(--color-on-surface);
