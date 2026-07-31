@@ -181,3 +181,10 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Blueprint Grid Dotted Pattern */
+.bg-grid-dots {
+  background-image: radial-gradient(rgba(148, 163, 184, 0.45) 1.2px, transparent 1.2px);
+  background-size: 28px 28px;
+}
+

@@ -1,8 +1,16 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "GitDesign - Version Control for Designers",
-  description: "Manage design systems, branch iterations, and merge with confidence.",
+  title: "GitDesign — Git for Figma. Version Control for Designers.",
+  description: "GitDesign brings repos, commits, branches, and pull requests to Figma. Track every design change, review with structured pull requests, and never lose a version again. Free Figma plugin.",
+  openGraph: {
+    title: "GitDesign — Git for Figma. Version Control for Designers.",
+    description: "Track every design change, review with pull requests, and never lose a version again. Free Figma plugin.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default function RootLayout({ children }) {
