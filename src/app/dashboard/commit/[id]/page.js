@@ -113,8 +113,8 @@ function VisualDiffSlider({ beforeUrl, afterUrl, beforeLabel = "BEFORE", afterLa
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden rounded-xl border border-[#e0e0e0] select-none cursor-col-resize shadow-xs"
-      style={{ minHeight: "420px", background: "#f0f0f2" }}
+      className="relative w-full overflow-hidden min-h-200 rounded-xl border border-[#e0e0e0] select-none cursor-col-resize shadow-xs"
+      style={{ background: "#f0f0f2" }}
       onMouseMove={onMouseMove}
       onMouseUp={() => setDragging(false)}
       onMouseLeave={() => setDragging(false)}
@@ -122,7 +122,7 @@ function VisualDiffSlider({ beforeUrl, afterUrl, beforeLabel = "BEFORE", afterLa
       onTouchEnd={() => setDragging(false)}
     >
       {/* Before (full width) */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 w-full h-full">
         {beforeUrl ? (
           <img src={beforeUrl} alt="Before" className="w-full h-full object-contain bg-[#f8f8f8]" draggable={false} />
         ) : (
@@ -812,7 +812,9 @@ export default function CommitDetailPage() {
                 </div>
                 <DesignInspectPanel
                   nodes={activeBaselineCommit?.nodes || []}
-                  className="h-[530px] max-h-[530px]"
+                  diff={activeDiff}
+                  panelRole="baseline"
+                  className="h-132.5 max-h-132.5"
                 />
               </div>
 
@@ -836,7 +838,9 @@ export default function CommitDetailPage() {
                 </div>
                 <DesignInspectPanel
                   nodes={commit?.nodes || []}
-                  className="h-[530px] max-h-[530px]"
+                  diff={activeDiff}
+                  panelRole="target"
+                  className="h-132.5 max-h-132.5"
                 />
               </div>
             </div>
@@ -970,7 +974,9 @@ export default function CommitDetailPage() {
             <div>
               <DesignInspectPanel
                 nodes={commit?.nodes || []}
-                className="h-[578px] max-h-[578px]"
+                diff={activeDiff}
+                panelRole="target"
+                className="h-144.5 max-h-144.5"
               />
             </div>
           </div>
