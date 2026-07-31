@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -32,10 +32,12 @@ import {
   Loader2,
   X,
   Code,
-  Columns,
+  GitMerge,
+  SplitSquareHorizontal,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import DesignInspectPanel from "@/components/dashboard/DesignInspectPanel";
-import SideBySideDiffViewer from "@/components/dashboard/SideBySideDiffViewer";
 
 const CHANGED_PROP_LABELS = {
   name: "Name",
@@ -78,151 +80,154 @@ function timeAgo(dateString) {
 
 function formatDate(dateString) {
   if (!dateString) return "";
-  return new Date(dateString).toLocaleString("en-US", {
+  const d = new Date(dateString);
+  return d.toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
   });
 }
 
-function flattenNodes(list, map = {}) {
-  for (const n of list) {
-    map[n.id] = n;
-    if (n.children) flattenNodes(n.children, map);
+// ─── Visual Diff Slider (Before/After) ───────────────────────────────────────
+function VisualDiffSlider({ beforeUrl, afterUrl, beforeLabel = "BEFORE", afterLabel = "AFTER" }) {
+  const [sliderX, setSliderX] = useState(50);
+  const [dragging, setDragging] = useState(false);
+  const containerRef = useRef(null);
+
+  function onMouseMove(e) {
+    if (!dragging || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    setSliderX(Math.min(98, Math.max(2, x)));
   }
-  return map;
-}
 
-function getChangedProps(prev, curr) {
-  const props = Object.keys(CHANGED_PROP_LABELS);
-  return props.filter((p) => JSON.stringify(prev[p]) !== JSON.stringify(curr[p]));
-}
+  function onTouchMove(e) {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = ((e.touches[0].clientX - rect.left) / rect.width) * 100;
+    setSliderX(Math.min(98, Math.max(2, x)));
+  }
 
-function computeDiff(currentNodes, parentNodes) {
-  const currentMap = flattenNodes(currentNodes);
-  const parentMap = flattenNodes(parentNodes);
-  const added = [],
-    removed = [],
-    modified = [],
-    unchanged = [];
-
-  Object.keys(currentMap).forEach((id) => {
-    const curr = currentMap[id];
-    const prev = parentMap[id];
-    if (!prev) {
-      added.push(curr);
-    } else if (prev.hash !== curr.hash) {
-      modified.push({ ...curr, changedProps: getChangedProps(prev, curr) });
-    } else {
-      unchanged.push(curr);
-    }
-  });
-
-  Object.keys(parentMap).forEach((id) => {
-    if (!currentMap[id]) removed.push(parentMap[id]);
-  });
-
-  return { added, removed, modified, unchanged };
-}
-
-// Type badge component
-function TypeBadge({ type }) {
-  const MAP = {
-    FRAME: { label: "Frame", color: "bg-blue-50 text-blue-600 border-blue-200" },
-    COMPONENT: { label: "Component", color: "bg-purple-50 text-purple-600 border-purple-200" },
-    INSTANCE: { label: "Instance", color: "bg-violet-50 text-violet-600 border-violet-200" },
-    TEXT: { label: "Text", color: "bg-amber-50 text-amber-600 border-amber-200" },
-    RECTANGLE: { label: "Rect", color: "bg-gray-50 text-gray-600 border-gray-200" },
-    ELLIPSE: { label: "Ellipse", color: "bg-gray-50 text-gray-600 border-gray-200" },
-    GROUP: { label: "Group", color: "bg-gray-50 text-gray-600 border-gray-200" },
-    VECTOR: { label: "Vector", color: "bg-pink-50 text-pink-600 border-pink-200" },
-    SECTION: { label: "Section", color: "bg-teal-50 text-teal-600 border-teal-200" },
-  };
-  const style = MAP[type] || { label: type, color: "bg-gray-50 text-gray-500 border-gray-200" };
   return (
-    <span className={`inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded border ${style.color}`}>
-      {style.label}
-    </span>
+    <div
+      ref={containerRef}
+      className="relative w-full overflow-hidden rounded-xl border border-[#e0e0e0] select-none cursor-col-resize shadow-xs"
+      style={{ minHeight: "420px", background: "#f0f0f2" }}
+      onMouseMove={onMouseMove}
+      onMouseUp={() => setDragging(false)}
+      onMouseLeave={() => setDragging(false)}
+      onTouchMove={onTouchMove}
+      onTouchEnd={() => setDragging(false)}
+    >
+      {/* Before (full width) */}
+      <div className="absolute inset-0">
+        {beforeUrl ? (
+          <img src={beforeUrl} alt="Before" className="w-full h-full object-contain bg-[#f8f8f8]" draggable={false} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-[#999999] flex-col gap-2">
+            <ImageOff className="w-8 h-8 opacity-40 text-black" />
+            <span className="text-[12px] font-medium">No parent snapshot available</span>
+          </div>
+        )}
+        <div className="absolute inset-0 flex items-end p-3 pointer-events-none">
+          <span className="bg-black/70 text-white text-[10px] font-bold px-2.5 py-1 rounded-md backdrop-blur-sm">
+            {beforeLabel}
+          </span>
+        </div>
+      </div>
+
+      {/* After (clipped by slider) */}
+      <div
+        className="absolute inset-0 overflow-hidden"
+        style={{ clipPath: `inset(0 0 0 ${sliderX}%)` }}
+      >
+        {afterUrl ? (
+          <img src={afterUrl} alt="After" className="w-full h-full object-contain bg-[#f8f8f8]" draggable={false} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-[#999999] flex-col gap-2">
+            <ImageOff className="w-8 h-8 opacity-40 text-black" />
+            <span className="text-[12px] font-medium">No snapshot available</span>
+          </div>
+        )}
+        <div className="absolute inset-0 flex items-end justify-end p-3 pointer-events-none">
+          <span className="bg-black/70 text-white text-[10px] font-bold px-2.5 py-1 rounded-md backdrop-blur-sm">
+            {afterLabel}
+          </span>
+        </div>
+      </div>
+
+      {/* Divider Line */}
+      <div
+        className="absolute top-0 bottom-0 w-[2px] bg-white shadow-lg z-10 pointer-events-none"
+        style={{ left: `${sliderX}%` }}
+      />
+
+      {/* Drag Handle */}
+      <div
+        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 w-9 h-9 bg-white rounded-full shadow-lg border border-[#e0e0e0] flex items-center justify-center cursor-col-resize"
+        style={{ left: `${sliderX}%` }}
+        onMouseDown={() => setDragging(true)}
+        onTouchStart={() => setDragging(true)}
+      >
+        <SplitSquareHorizontal className="w-4 h-4 text-black" />
+      </div>
+
+      {/* Percentage indicator */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-black/70 text-white text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full backdrop-blur-sm pointer-events-none">
+        {Math.round(sliderX)}%
+      </div>
+    </div>
   );
 }
 
-// Single diff row component
+// ─── DiffRow component ────────────────────────────────────────────────────────
 function DiffRow({ node, kind }) {
-  const [expanded, setExpanded] = useState(false);
-  const colors = {
-    added: {
-      bg: "bg-emerald-50/60",
-      border: "border-emerald-200",
-      text: "text-emerald-800",
-      sig: "+",
-      sigColor: "text-emerald-600",
-      bar: "bg-emerald-500",
-      Icon: Plus,
-    },
-    removed: {
-      bg: "bg-red-50/60",
-      border: "border-red-200",
-      text: "text-red-800",
-      sig: "−",
-      sigColor: "text-red-500",
-      bar: "bg-red-500",
-      Icon: Minus,
-    },
-    modified: {
-      bg: "bg-amber-50/60",
-      border: "border-amber-200",
-      text: "text-amber-800",
-      sig: "~",
-      sigColor: "text-amber-600",
-      bar: "bg-amber-500",
-      Icon: Edit3,
-    },
+  const [isOpen, setIsOpen] = useState(false);
+  const kindStyles = {
+    added: { bg: "bg-emerald-50 border-emerald-200", badge: "bg-emerald-100 text-emerald-700 border-emerald-300", dot: "bg-emerald-500", icon: <Check className="w-3 h-3 text-emerald-600" />, label: "ADDED" },
+    removed: { bg: "bg-red-50 border-red-200", badge: "bg-red-100 text-red-700 border-red-300", dot: "bg-red-500", icon: <X className="w-3 h-3 text-red-600" />, label: "REMOVED" },
+    modified: { bg: "bg-amber-50 border-amber-200", badge: "bg-amber-100 text-amber-700 border-amber-300", dot: "bg-amber-500", icon: <Edit3 className="w-3 h-3 text-amber-600" />, label: "MODIFIED" },
+    unchanged: { bg: "bg-white border-[#e5e5e5]", badge: "bg-[#f5f5f5] text-[#555] border-[#ddd]", dot: "bg-[#aaa]", icon: <MinusCircle className="w-3 h-3 text-[#aaa]" />, label: "UNCHANGED" },
   };
-  const c = colors[kind];
-  const IconComp = c.Icon;
-  const hasProps = kind === "modified" && node.changedProps?.length > 0;
+  const s = kindStyles[kind] || kindStyles.unchanged;
+  const changedProps = node.changedProperties || [];
 
   return (
-    <div className={`border ${c.border} ${c.bg} rounded-lg overflow-hidden mb-2 transition-all`}>
+    <div className={`rounded-lg border ${s.bg} overflow-hidden`}>
       <div
-        className={`flex items-center gap-3 px-3.5 py-2.5 ${hasProps ? "cursor-pointer hover:bg-black/5" : ""}`}
-        onClick={() => hasProps && setExpanded(!expanded)}
+        className={`flex items-center justify-between px-4 py-2.5 gap-3 ${kind === "modified" && changedProps.length > 0 ? "cursor-pointer" : ""}`}
+        onClick={() => kind === "modified" && changedProps.length > 0 && setIsOpen((p) => !p)}
       >
-        {/* Color accent bar */}
-        <div className={`w-1 self-stretch rounded-full ${c.bar} shrink-0`} />
-
-        {/* Icon status indicator */}
-        <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${c.sigColor}`}>
-          <IconComp className="w-3.5 h-3.5" />
-        </span>
-
-        {/* Node name */}
-        <span className={`font-semibold text-[13px] grow truncate ${c.text}`}>{node.name}</span>
-
-        {/* Node type badge */}
-        <TypeBadge type={node.type} />
-
-        {/* Expand toggle for modified properties */}
-        {hasProps && (
-          <button type="button" className={`p-1 rounded text-[#666] hover:text-black transition-transform ${expanded ? "rotate-180" : ""}`}>
-            <ChevronDown className="w-4 h-4" />
-          </button>
+        <div className="flex items-center gap-2 min-w-0 grow">
+          <span className={`w-2 h-2 rounded-full shrink-0 ${s.dot}`} />
+          <span className="text-[12px] font-medium text-black truncate">{node.name || "Unnamed Layer"}</span>
+          <span className={`text-[9px] font-bold uppercase tracking-wide border px-1.5 py-0.5 rounded shrink-0 ${s.badge}`}>
+            {s.label}
+          </span>
+        </div>
+        {kind === "modified" && changedProps.length > 0 && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] text-[#888] font-medium">{changedProps.length} props</span>
+            {isOpen ? <ChevronUp className="w-3.5 h-3.5 text-[#666]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#666]" />}
+          </div>
         )}
       </div>
 
-      {/* Expanded property diff chips */}
-      {expanded && hasProps && (
-        <div className="px-4 pb-3 pt-2 border-t border-amber-200/60 bg-white/60 flex flex-wrap gap-1.5">
-          {node.changedProps.map((p) => (
-            <span
-              key={p}
-              className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-amber-100/80 text-amber-800 border border-amber-300/80"
-            >
-              <Edit3 className="w-3 h-3 text-amber-600" />
-              {CHANGED_PROP_LABELS[p] || p}
-            </span>
+      {isOpen && changedProps.length > 0 && (
+        <div className="border-t border-amber-200 px-4 py-3 flex flex-col gap-2 bg-amber-50/50">
+          {changedProps.map((prop) => (
+            <div key={prop.key} className="flex flex-col gap-0.5">
+              <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide">
+                {CHANGED_PROP_LABELS[prop.key] || prop.key}
+              </span>
+              <div className="flex items-start gap-2 text-[11px]">
+                <span className="flex-1 font-mono bg-red-50 border border-red-200 text-red-700 px-2 py-0.5 rounded truncate">{String(prop.before ?? "—")}</span>
+                <span className="text-[#666] font-bold shrink-0">→</span>
+                <span className="flex-1 font-mono bg-emerald-50 border border-emerald-200 text-emerald-700 px-2 py-0.5 rounded truncate">{String(prop.after ?? "—")}</span>
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -230,6 +235,53 @@ function DiffRow({ node, kind }) {
   );
 }
 
+// ─── Diff engine ──────────────────────────────────────────────────────────────
+function flattenNodes(nodes, result = []) {
+  if (!Array.isArray(nodes)) return result;
+  for (const n of nodes) {
+    result.push(n);
+    if (n.children) flattenNodes(n.children, result);
+  }
+  return result;
+}
+
+function getColorValue(fills) {
+  if (!Array.isArray(fills)) return null;
+  const f = fills.find((x) => x.type === "SOLID" && x.color);
+  if (!f) return null;
+  const { r, g, b, a = 1 } = f.color;
+  return `rgba(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)},${a.toFixed(2)})`;
+}
+
+const TRACKED_PROPS = ["name", "visible", "opacity", "x", "y", "width", "height", "fills", "strokes", "strokeWeight", "cornerRadius", "effects", "layoutMode", "itemSpacing", "paddingLeft", "paddingRight", "paddingTop", "paddingBottom", "characters", "fontSize", "fontName"];
+
+function computeDiff(current, parent) {
+  const curr = flattenNodes(current);
+  const prev = flattenNodes(parent);
+  const prevMap = Object.fromEntries(prev.map((n) => [n.id, n]));
+  const currMap = Object.fromEntries(curr.map((n) => [n.id, n]));
+
+  const added = [], removed = [], modified = [], unchanged = [];
+
+  for (const n of curr) {
+    if (!prevMap[n.id]) { added.push(n); continue; }
+    const old = prevMap[n.id];
+    const changedProperties = [];
+    for (const key of TRACKED_PROPS) {
+      const after = key === "fills" ? getColorValue(n[key]) : n[key];
+      const before = key === "fills" ? getColorValue(old[key]) : old[key];
+      if (JSON.stringify(after) !== JSON.stringify(before)) {
+        changedProperties.push({ key, before, after });
+      }
+    }
+    if (changedProperties.length > 0) { modified.push({ ...n, changedProperties }); }
+    else { unchanged.push(n); }
+  }
+  for (const n of prev) { if (!currMap[n.id]) removed.push(n); }
+  return { added, removed, modified, unchanged };
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function CommitDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -237,14 +289,16 @@ export default function CommitDetailPage() {
 
   const [user, setUser] = useState(null);
   const [commit, setCommit] = useState(null);
-  const [allCommits, setAllCommits] = useState([]);
-  const [selectedBaseCommit, setSelectedBaseCommit] = useState(null);
+  const [parentCommit, setParentCommit] = useState(null);
+  const [allRepoCommits, setAllRepoCommits] = useState([]);
+  const [selectedCompareCommit, setSelectedCompareCommit] = useState(null);
   const [diff, setDiff] = useState(null);
   const [loading, setLoading] = useState(true);
   const [snapshotError, setSnapshotError] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [activeRightTab, setActiveRightTab] = useState("diff");
+  const [compareMode, setCompareMode] = useState(false);
 
   // Header State
   const [notifications, setNotifications] = useState([]);
@@ -285,51 +339,68 @@ export default function CommitDetailPage() {
     router.push("/login");
   }
 
-  async function loadCommit(currentUser) {
+  async function copyCommitHash() {
+    if (!commit?.id) return;
+    try {
+      await navigator.clipboard.writeText(commit.id);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  async function loadCommit() {
     setLoading(true);
     try {
-      // Fetch the commit with full node data
-      const { data: rows, error } = await supabase
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+      if (!currentUser) {
+        router.push("/login");
+        return;
+      }
+      setUser(currentUser);
+
+      const { data: c, error } = await supabase
         .from("dvc_commits")
         .select("*")
-        .eq("id", commitId);
-      if (error) throw error;
-      const c = rows?.[0];
-      if (!c) throw new Error("Commit not found");
+        .eq("id", commitId)
+        .maybeSingle();
+
+      if (error || !c) {
+        router.push("/dashboard");
+        return;
+      }
       setCommit(c);
 
-      // Fetch parent commit for diff calculation
-      let parentNodes = [];
-      let parentObj = null;
-
-      // Fetch all commits in the same repository file
-      const { data: fileCommits } = await supabase
+      // Fetch all commits for the same frame/file for comparison dropdown
+      const { data: repoCommitRows } = await supabase
         .from("dvc_commits")
-        .select("id, file_key, message, author, timestamp, snapshot_url, nodes, parent_id")
+        .select("id, message, author, timestamp, snapshot_url, frame_name, file_key, nodes")
         .eq("file_key", c.file_key)
+        .neq("id", commitId)
         .order("timestamp", { ascending: false });
 
-      setAllCommits(fileCommits || []);
+      const repoCommits = (repoCommitRows || []).filter(
+        (r) => (c.frame_name ? r.frame_name === c.frame_name : true)
+      );
+      setAllRepoCommits(repoCommits);
 
+      // Fetch parent commit for diff + comparison
+      let parentObj = null;
       if (c.parent_id) {
-        parentObj = fileCommits?.find((item) => item.id === c.parent_id);
-        if (!parentObj) {
-          const { data: parentRows } = await supabase
-            .from("dvc_commits")
-            .select("id, file_key, message, author, timestamp, snapshot_url, nodes")
-            .eq("id", c.parent_id);
-          parentObj = parentRows?.[0];
-        }
-        parentNodes = parentObj?.nodes || [];
+        const { data: parentRows } = await supabase
+          .from("dvc_commits")
+          .select("*")
+          .eq("id", c.parent_id);
+        parentObj = parentRows?.[0] || null;
       } else {
-        // Fallback: previous commit in history
-        parentObj = fileCommits?.find((item) => item.id !== c.id);
-        parentNodes = parentObj?.nodes || [];
+        parentObj = repoCommits[0] || null;
       }
 
-      setSelectedBaseCommit(parentObj || null);
-      const currentNodes = c.nodes || [];
-      setDiff(computeDiff(currentNodes, parentNodes));
+      setParentCommit(parentObj);
+      setSelectedCompareCommit(parentObj);
       await fetchNotifications(currentUser.id);
     } catch (e) {
       console.error("Error loading commit:", e.message);
@@ -339,27 +410,17 @@ export default function CommitDetailPage() {
   }
 
   useEffect(() => {
-    async function init() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-      setUser(user);
-      await loadCommit(user);
-    }
-    init();
-  }, [commitId, router]);
+    loadCommit();
+  }, [commitId]);
 
-  function copyCommitHash() {
-    if (commit?.id) {
-      navigator.clipboard.writeText(commit.id);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  }
+  const activeBaselineCommit = compareMode ? (selectedCompareCommit || parentCommit) : parentCommit;
+
+  const activeDiff = useMemo(() => {
+    if (!commit) return null;
+    const currentNodes = commit.nodes || [];
+    const baselineNodes = activeBaselineCommit?.nodes || [];
+    return computeDiff(currentNodes, baselineNodes);
+  }, [commit, activeBaselineCommit]);
 
   if (loading) {
     return (
@@ -377,47 +438,26 @@ export default function CommitDetailPage() {
         <main className="grow p-6 md:p-8 w-full max-w-[1600px] mx-auto flex flex-col items-center justify-center min-h-125">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-black" />
-            <p className="text-[13px] text-[#666666] font-medium">Loading Visual Commit Details...</p>
+            <p className="text-[13px] text-[#666666] font-medium">Loading commit...</p>
           </div>
         </main>
       </div>
     );
   }
 
-  if (!commit) {
-    return (
-      <div className="grow flex flex-col min-w-0">
-        <Header
-          user={user}
-          notifications={notifications}
-          isNotifOpen={isNotifOpen}
-          setIsNotifOpen={setIsNotifOpen}
-          markAllRead={markAllRead}
-          markNotifRead={markNotifRead}
-          setIsSearchOpen={setIsSearchOpen}
-          onSignOut={handleSignOut}
-        />
-        <main className="grow p-6 md:p-8 w-full max-w-[1600px] mx-auto flex flex-col items-center justify-center min-h-125">
-          <div className="text-center flex flex-col items-center gap-3">
-            <ImageOff className="w-10 h-10 text-[#aaa]" />
-            <p className="text-[16px] font-bold text-black">Commit Not Found</p>
-            <p className="text-[13px] text-[#777]">The requested commit ID #{commitId} does not exist or was removed.</p>
-            <Link href="/dashboard/activity" className="mt-2 bg-black text-white text-[12px] font-bold px-4 py-2 rounded-lg hover:bg-black/90 transition-colors">
-              Back to Activity Stream
-            </Link>
-          </div>
-        </main>
-      </div>
-    );
-  }
+  if (!commit) return null;
 
-  const shortId = commit.id?.slice(0, 7);
-  const totalChanges = diff ? diff.added.length + diff.removed.length + diff.modified.length : 0;
   const isFirstCommit = !commit.parent_id;
+
+  const isComparingCustom = compareMode && activeBaselineCommit && activeBaselineCommit.id !== parentCommit?.id;
+  const totalChanges = activeDiff ? activeDiff.added.length + activeDiff.removed.length + activeDiff.modified.length : 0;
+
+  const compareCommit = selectedCompareCommit || parentCommit;
+  const parentSnapshotUrl = compareCommit?.snapshot_url || null;
+  const hasComparisonSnapshots = !!(commit.snapshot_url && parentSnapshotUrl);
 
   return (
     <div className="grow flex flex-col min-w-0">
-      {/* Persistent App Header */}
       <Header
         user={user}
         notifications={notifications}
@@ -429,34 +469,23 @@ export default function CommitDetailPage() {
         onSignOut={handleSignOut}
       />
 
-      {/* Main Content Area matching 1600px max width */}
       <main className="grow p-6 md:p-8 w-full max-w-[1600px] mx-auto flex flex-col gap-6">
-        {/* Breadcrumb Navigation & Quick Actions Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-[13px] flex-wrap">
-            <Link href="/dashboard" className="font-bold text-black hover:underline flex items-center gap-1.5">
-              <FolderGit2 className="w-4 h-4 text-black" />
-              GitDesign
-            </Link>
-            <span className="text-[#bbb]">/</span>
-            <Link href="/dashboard/activity" className="text-[#666666] hover:text-black transition-colors font-medium">
-              Activity
-            </Link>
-            <span className="text-[#bbb]">/</span>
-            <span className="font-mono text-[11px] bg-[#f0f0f4] border border-[#e0e0e4] px-2 py-0.5 rounded-md font-bold text-black">
-              #{shortId}
-            </span>
+        {/* Breadcrumb Nav */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="p-2 rounded-lg bg-white/80 hover:bg-white border border-[#e0e0e4] text-[#555] hover:text-black transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="flex items-center gap-1.5 text-[13px] text-[#777]">
+            <Link href="/dashboard" className="hover:text-black hover:underline">Dashboard</Link>
+            <span>›</span>
+            <span className="font-semibold text-black">Commit {commit.id?.slice(0, 7)}</span>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
-            <Link
-              href="/dashboard/activity"
-              className="bg-white/80 border border-[#c5c5c5] text-black text-[12px] font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-white transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 text-black" />
-              Back to Activity
-            </Link>
-
+          <div className="ml-auto flex items-center gap-2">
             <button
               type="button"
               onClick={copyCommitHash}
@@ -478,7 +507,6 @@ export default function CommitDetailPage() {
 
         {/* Commit Hero Card */}
         <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl overflow-hidden shadow-xs flex flex-col">
-          {/* Header Message */}
           <div className="p-6 border-b border-[#f0f0f0] flex flex-col gap-3">
             <h1 className="text-[22px] font-bold text-black font-sans leading-tight tracking-tight">
               {commit.message}
@@ -506,7 +534,7 @@ export default function CommitDetailPage() {
               <FolderGit2 className="w-3.5 h-3.5 text-black" />
               <span>Repository:</span>
               <span className="font-mono font-bold text-black bg-[#f0f0f4] px-1.5 py-0.5 rounded border border-[#e0e0e4]">
-                gitdesign/{commit.file_key}
+                gitdesign/{commit.frame_name || commit.file_key}
               </span>
             </div>
 
@@ -559,251 +587,397 @@ export default function CommitDetailPage() {
           </div>
         </div>
 
-        {/* 2-Column Split: Design Snapshot Preview + Layer Diff Inspector */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
-          {/* Left Column: Visual Design Snapshot Banner */}
-          <div className="lg:col-span-2">
-            <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl overflow-hidden shadow-xs sticky top-24 flex flex-col gap-4 p-5">
-              <div className="flex items-center justify-between pb-3 border-b border-[#f0f0f0]">
-                <div className="flex items-center gap-2">
-                  <ImageIcon className="w-4.5 h-4.5 text-black" />
-                  <h3 className="text-[14px] font-bold text-black font-sans tracking-tight">Design Snapshot</h3>
-                </div>
-                {commit.snapshot_url && (
-                  <span className="text-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-2 py-0.5 rounded-full">
-                    Captured
-                  </span>
-                )}
-              </div>
+        {/* ── LARGE VISUAL SECTION ─────────────────────────────────────────── */}
+        <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl overflow-hidden shadow-xs flex flex-col gap-0">
+          {/* Visual Header with Compare Toggle */}
+          <div className="px-5 py-3.5 border-b border-[#f0f0f0] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-4.5 h-4.5 text-black" />
+              <h3 className="text-[14px] font-semibold text-black font-sans">Design Canvas Snapshot</h3>
+              {commit.snapshot_url && (
+                <span className="text-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold px-2 py-0.5 rounded-full">
+                  Captured
+                </span>
+              )}
+            </div>
 
-              {commit.snapshot_url && !snapshotError ? (
-                <div className="flex flex-col gap-3">
-                  <div className="rounded-lg overflow-hidden border border-[#e0e0e0] bg-[#f4f4f6] relative group" style={{ aspectRatio: "4/3" }}>
-                    <img
-                      src={commit.snapshot_url}
-                      alt={`Snapshot — ${commit.frame_name || "Figma Frame"}`}
-                      className="w-full h-full object-contain p-2"
-                      onError={() => setSnapshotError(true)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setIsLightboxOpen(true)}
-                      className="absolute bottom-3 right-3 bg-black/80 hover:bg-black text-white p-2 rounded-lg transition-colors shadow-md cursor-pointer"
-                      title="Expand full screen preview"
-                    >
-                      <Maximize2 className="w-4 h-4" />
-                    </button>
-                  </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Compare Toggle */}
+              <button
+                type="button"
+                onClick={() => setCompareMode((v) => !v)}
+                className={`flex items-center gap-2 text-[12px] font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                  compareMode
+                    ? "bg-black text-white border-black shadow-xs"
+                    : "bg-white/80 text-[#555] border-[#d5d5d5] hover:border-black hover:text-black"
+                }`}
+              >
+                <SplitSquareHorizontal className="w-3.5 h-3.5" />
+                {compareMode ? "Comparing" : "Compare"}
+              </button>
 
-                  <a
-                    href={commit.snapshot_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-2 text-[12px] font-bold text-black border border-[#c5c5c5] hover:bg-black hover:text-white transition-colors rounded-lg py-2.5 cursor-pointer shadow-xs"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Open Original Image
-                  </a>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 gap-3 text-[#aaa] border border-dashed border-[#d5d5d5] rounded-lg bg-[#fafafa]">
-                  <ImageOff className="w-10 h-10 opacity-40 text-black" />
-                  <div className="text-center">
-                    <p className="text-[13px] font-semibold text-black">No snapshot preview</p>
-                    <p className="text-[11px] text-[#888888] mt-1">
-                      {snapshotError
-                        ? "Failed to load snapshot image asset."
-                        : "Visual snapshot preview was not attached to this commit."}
-                    </p>
-                  </div>
-                </div>
+              {/* Baseline Commit Selector Dropdown */}
+              {compareMode && allRepoCommits.length > 0 && (
+                <select
+                  value={selectedCompareCommit?.id || ""}
+                  onChange={(e) => {
+                    const found = allRepoCommits.find((c) => c.id === e.target.value);
+                    setSelectedCompareCommit(found || null);
+                  }}
+                  className="text-[12px] font-medium bg-white border border-[#d5d5d5] text-black rounded-lg px-3 py-1.5 outline-none focus:border-black cursor-pointer shadow-xs transition-colors"
+                >
+                  <option value="" disabled>Select baseline commit…</option>
+                  {allRepoCommits.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      #{c.id.slice(0, 7)} · {c.message?.slice(0, 35)}{c.message?.length > 35 ? "…" : ""} · {timeAgo(c.timestamp)}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {commit.snapshot_url && !compareMode && (
+                <button
+                  type="button"
+                  onClick={() => setIsLightboxOpen(true)}
+                  className="p-1.5 rounded-lg bg-white/80 hover:bg-white border border-[#e0e0e4] text-[#555] hover:text-black transition-colors cursor-pointer"
+                  title="Expand full screen preview"
+                >
+                  <Maximize2 className="w-4 h-4" />
+                </button>
               )}
             </div>
           </div>
 
-          {/* Right Column: Layer & Node Diff Inspection / Developer Specs */}
-          <div className="lg:col-span-3 flex flex-col gap-4">
-            {/* View Mode Tabs */}
-            <div className="flex items-center gap-2 border-b border-[#e5e5e5]/60 pb-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setActiveRightTab("diff")}
-                className={`flex items-center gap-1.5 text-[12px] font-semibold px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                  activeRightTab === "diff"
-                    ? "bg-black text-white shadow-xs"
-                    : "bg-white/60 text-[#666] hover:bg-white hover:text-black border border-[#e0e0e4]"
-                }`}
-              >
-                <Layers className="w-3.5 h-3.5" />
-                Layer Changes
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveRightTab("inspect")}
-                className={`flex items-center gap-1.5 text-[12px] font-semibold px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                  activeRightTab === "inspect"
-                    ? "bg-black text-white shadow-xs"
-                    : "bg-white/60 text-[#666] hover:bg-white hover:text-black border border-[#e0e0e4]"
-                }`}
-              >
-                <Code className="w-3.5 h-3.5 text-amber-400" />
-                📐 Developer Inspect Mode
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveRightTab("split")}
-                className={`flex items-center gap-1.5 text-[12px] font-semibold px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                  activeRightTab === "split"
-                    ? "bg-black text-white shadow-xs"
-                    : "bg-white/60 text-[#666] hover:bg-white hover:text-black border border-[#e0e0e4]"
-                }`}
-              >
-                <Columns className="w-3.5 h-3.5 text-blue-400" />
-                ↔ Side-by-Side Split
-              </button>
-            </div>
-
-            {activeRightTab === "split" ? (
-              <SideBySideDiffViewer
-                currentCommit={commit}
-                baseCommit={selectedBaseCommit}
-                allCommits={allCommits}
-                onSelectBaseCommit={setSelectedBaseCommit}
-              />
-            ) : activeRightTab === "inspect" ? (
-              <DesignInspectPanel nodes={commit?.nodes || []} />
-            ) : (
-              <>
-                {/* Diff Summary Bar */}
-            {diff && (
-              <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl px-6 py-4 shadow-sm flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-black">
-                    {isFirstCommit
-                      ? "Initial Commit"
-                      : totalChanges === 0
-                      ? "No layer changes vs. parent"
-                      : `${totalChanges} layer${totalChanges !== 1 ? "s" : ""} modified`}
-                  </span>
+          {/* Visual Content */}
+          <div className="p-5">
+            {compareMode ? (
+              hasComparisonSnapshots ? (
+                <div className="flex flex-col gap-3">
+                  <VisualDiffSlider
+                    beforeUrl={parentSnapshotUrl}
+                    afterUrl={commit.snapshot_url}
+                    beforeLabel={`BEFORE · #${compareCommit?.id?.slice(0, 7)}`}
+                    afterLabel={`AFTER · #${commit.id?.slice(0, 7)}`}
+                  />
+                  <p className="text-[11px] text-[#888] text-center">
+                    Comparing <strong className="text-black">#{compareCommit?.id?.slice(0, 7)}</strong>
+                    {" "}→{" "}
+                    <strong className="text-black">#{commit.id?.slice(0, 7)}</strong>
+                    {" · "}Drag the handle to compare snapshots
+                  </p>
                 </div>
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  {diff.added.length > 0 && (
-                    <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
-                      <Plus className="w-3 h-3 text-emerald-600" />
-                      {diff.added.length} added
-                    </span>
-                  )}
-                  {diff.removed.length > 0 && (
-                    <span className="flex items-center gap-1 text-[11px] font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
-                      <Minus className="w-3 h-3 text-red-600" />
-                      {diff.removed.length} removed
-                    </span>
-                  )}
-                  {diff.modified.length > 0 && (
-                    <span className="flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
-                      <Edit3 className="w-3 h-3 text-amber-600" />
-                      {diff.modified.length} modified
-                    </span>
-                  )}
-                  {diff.unchanged.length > 0 && (
-                    <span className="text-[11px] font-medium text-[#777] bg-[#f0f0f4] border border-[#e0e0e4] px-2.5 py-1 rounded-full">
-                      {diff.unchanged.length} unchanged
-                    </span>
-                  )}
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-3 py-16 border border-dashed border-[#d5d5d5] rounded-xl bg-[#fafafa]">
+                  <ImageOff className="w-10 h-10 opacity-30 text-black" />
+                  <p className="text-[13px] font-semibold text-black">No Parent Snapshot Available</p>
+                  <p className="text-[11px] text-[#888]">
+                    {isFirstCommit
+                      ? "This is the first commit — there is no previous version to compare."
+                      : "The parent commit doesn't have a snapshot captured."}
+                  </p>
+                </div>
+              )
+            ) : commit.snapshot_url && !snapshotError ? (
+              <div className="rounded-xl overflow-hidden border border-[#e0e0e0] bg-[#f4f4f6] relative" style={{ minHeight: "420px" }}>
+                <img
+                  src={commit.snapshot_url}
+                  alt={`Snapshot — ${commit.frame_name || "Figma Frame"}`}
+                  className="w-full h-full object-contain p-3"
+                  style={{ minHeight: "420px" }}
+                  onError={() => setSnapshotError(true)}
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 gap-3 text-[#aaa] border border-dashed border-[#d5d5d5] rounded-xl bg-[#fafafa]">
+                <ImageOff className="w-10 h-10 opacity-40 text-black" />
+                <div className="text-center">
+                  <p className="text-[13px] font-semibold text-black">No snapshot preview</p>
+                  <p className="text-[11px] text-[#888888] mt-1">
+                    {snapshotError ? "Failed to load snapshot image asset." : "Visual snapshot was not attached to this commit."}
+                  </p>
                 </div>
               </div>
             )}
+          </div>
 
-            {/* Layer Changes List Section */}
-            {diff && (
-              <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-6 shadow-xs flex flex-col gap-4 h-[438px] max-h-[438px]">
-                <div className="flex items-center justify-between pb-3 border-b border-[#f0f0f0]">
+          {/* Open Image link */}
+          {commit.snapshot_url && !compareMode && (
+            <div className="px-5 pb-4">
+              <a
+                href={commit.snapshot_url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 text-[12px] font-semibold text-black border border-[#c5c5c5] hover:bg-black hover:text-white transition-colors rounded-lg py-2 cursor-pointer shadow-xs"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Open Original Image
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* ── LOWER PANELS: LAYER CHANGES & SIDE-BY-SIDE DEVELOPER INSPECTION ── */}
+        {compareMode ? (
+          <div className="flex flex-col gap-6">
+            {/* Layer Changes Breakdown in Compare Mode */}
+            {activeDiff && (
+              <div className="flex flex-col gap-3">
+                {/* Diff Summary Bar */}
+                <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl px-5 py-3.5 shadow-sm flex items-center justify-between gap-3 flex-wrap">
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col gap-0.5 shrink-0">
                       <div className="w-3.5 h-1 rounded-full bg-emerald-500" />
                       <div className="w-3.5 h-1 rounded-full bg-red-400" />
                     </div>
-                    <h2 className="text-[16px] font-bold text-black font-sans tracking-tight">Layer Changes</h2>
-                  </div>
-                  {isFirstCommit && (
-                    <span className="text-[10px] bg-[#f0f0f4] border border-[#e0e0e4] text-[#666] font-semibold px-2.5 py-0.5 rounded-full">
-                      Initial commit baseline
+                    <span className="text-[13px] font-bold text-black">
+                      Layer Changes (Comparing #{activeBaselineCommit?.id?.slice(0, 7)} → #{commit?.id?.slice(0, 7)})
                     </span>
-                  )}
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {activeDiff.added.length > 0 && (
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                        <Plus className="w-3 h-3 text-emerald-600" />
+                        {activeDiff.added.length} added
+                      </span>
+                    )}
+                    {activeDiff.removed.length > 0 && (
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+                        <Minus className="w-3 h-3 text-red-600" />
+                        {activeDiff.removed.length} removed
+                      </span>
+                    )}
+                    {activeDiff.modified.length > 0 && (
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                        <Edit3 className="w-3 h-3 text-amber-600" />
+                        {activeDiff.modified.length} modified
+                      </span>
+                    )}
+                    {activeDiff.unchanged.length > 0 && (
+                      <span className="text-[11px] font-medium text-[#777] bg-[#f0f0f4] border border-[#e0e0e4] px-2.5 py-1 rounded-full">
+                        {activeDiff.unchanged.length} unchanged
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex flex-col gap-4 max-h-[355px] overflow-y-auto pr-1 custom-scrollbar">
-                  {/* Added layers */}
-                  {diff.added.length > 0 && (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2 text-[12px] font-bold text-emerald-700">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                        <span>Added ({diff.added.length})</span>
+                {/* Scrollable Layer Changes List */}
+                {totalChanges > 0 && (
+                  <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-4 shadow-xs flex flex-col gap-3 max-h-[260px] overflow-y-auto custom-scrollbar">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#f0f0f0]">
+                      <div className="flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-black" />
+                        <h3 className="text-[14px] font-bold text-black font-sans">Layer Differences List</h3>
                       </div>
-                      {diff.added.map((n) => (
+                      <span className="text-[10px] text-[#777]">
+                        {totalChanges} total changes vs baseline
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      {activeDiff.added.map((n) => (
                         <DiffRow key={n.id} node={n} kind="added" />
                       ))}
-                    </div>
-                  )}
-
-                  {/* Removed layers */}
-                  {diff.removed.length > 0 && (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2 text-[12px] font-bold text-red-700">
-                        <span className="w-2 h-2 rounded-full bg-red-500" />
-                        <span>Removed ({diff.removed.length})</span>
-                      </div>
-                      {diff.removed.map((n) => (
+                      {activeDiff.removed.map((n) => (
                         <DiffRow key={n.id} node={n} kind="removed" />
                       ))}
-                    </div>
-                  )}
-
-                  {/* Modified layers */}
-                  {diff.modified.length > 0 && (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between text-[12px] font-bold text-amber-700">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-amber-500" />
-                          <span>Modified ({diff.modified.length})</span>
-                        </div>
-                        <span className="text-[10px] text-[#777] font-normal">Click any layer to view changed properties</span>
-                      </div>
-                      {diff.modified.map((n) => (
+                      {activeDiff.modified.map((n) => (
                         <DiffRow key={n.id} node={n} kind="modified" />
                       ))}
                     </div>
-                  )}
-
-                  {/* Empty state when no changes */}
-                  {!isFirstCommit && totalChanges === 0 && (
-                    <div className="flex flex-col items-center py-12 gap-2 text-[#aaa] border border-dashed border-[#d5d5d5] rounded-lg bg-[#fafafa]">
-                      <CheckCircle2 className="w-8 h-8 text-emerald-600" />
-                      <p className="text-[13px] font-bold text-black">No Layer Changes Detected</p>
-                      <p className="text-[11px] text-[#888888]">This commit matches the exact structure of its parent commit.</p>
-                    </div>
-                  )}
-
-                  {isFirstCommit && diff.added.length === 0 && (
-                    <div className="flex flex-col items-center py-10 gap-2 text-center">
-                      <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-                      <p className="text-[13px] font-bold text-black">First Commit Created</p>
-                      <p className="text-[11px] text-[#777777]">
-                        All <strong className="text-black">{commit.node_count || 0}</strong> Figma nodes are tracked in this initial version.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
-            </>
-            )}
+
+            {/* Side-by-Side Developer Inspect Panels */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+              {/* Left Panel: Baseline Commit Developer Inspect */}
+              <div className="flex flex-col gap-3">
+                <div className="bg-white/80 backdrop-blur-md border border-amber-200/80 px-4 py-2.5 rounded-xl shadow-xs flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0">
+                      BEFORE · BASELINE
+                    </span>
+                    <span className="text-[12px] font-bold text-black font-mono shrink-0">
+                      #{activeBaselineCommit?.id?.slice(0, 7)}
+                    </span>
+                    <span className="text-[11px] text-[#666] truncate">
+                      {activeBaselineCommit?.message}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-[#777] font-semibold shrink-0">
+                    {activeBaselineCommit?.nodes?.length || 0} layers
+                  </span>
+                </div>
+                <DesignInspectPanel
+                  nodes={activeBaselineCommit?.nodes || []}
+                  className="h-[530px] max-h-[530px]"
+                />
+              </div>
+
+              {/* Right Panel: Target Commit Developer Inspect */}
+              <div className="flex flex-col gap-3">
+                <div className="bg-white/80 backdrop-blur-md border border-emerald-200/80 px-4 py-2.5 rounded-xl shadow-xs flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0">
+                      AFTER · TARGET
+                    </span>
+                    <span className="text-[12px] font-bold text-black font-mono shrink-0">
+                      #{commit?.id?.slice(0, 7)}
+                    </span>
+                    <span className="text-[11px] text-[#666] truncate">
+                      {commit?.message}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-[#777] font-semibold shrink-0">
+                    {commit?.nodes?.length || 0} layers
+                  </span>
+                </div>
+                <DesignInspectPanel
+                  nodes={commit?.nodes || []}
+                  className="h-[530px] max-h-[530px]"
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+            {/* Left: Layer Changes */}
+            <div className="flex flex-col gap-4">
+              {/* Diff Summary Bar */}
+              {activeDiff && (
+                <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl px-5 py-3.5 shadow-sm flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-0.5 shrink-0">
+                      <div className="w-3.5 h-1 rounded-full bg-emerald-500" />
+                      <div className="w-3.5 h-1 rounded-full bg-red-400" />
+                    </div>
+                    <span className="text-[13px] font-bold text-black">
+                      {isFirstCommit
+                        ? "Initial Commit"
+                        : totalChanges === 0
+                        ? "No layer changes vs. parent"
+                        : `${totalChanges} layer${totalChanges !== 1 ? "s" : ""} modified`}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {activeDiff.added.length > 0 && (
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                        <Plus className="w-3 h-3 text-emerald-600" />
+                        {activeDiff.added.length} added
+                      </span>
+                    )}
+                    {activeDiff.removed.length > 0 && (
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+                        <Minus className="w-3 h-3 text-red-600" />
+                        {activeDiff.removed.length} removed
+                      </span>
+                    )}
+                    {activeDiff.modified.length > 0 && (
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                        <Edit3 className="w-3 h-3 text-amber-600" />
+                        {activeDiff.modified.length} modified
+                      </span>
+                    )}
+                    {activeDiff.unchanged.length > 0 && (
+                      <span className="text-[11px] font-medium text-[#777] bg-[#f0f0f4] border border-[#e0e0e4] px-2.5 py-1 rounded-full">
+                        {activeDiff.unchanged.length} unchanged
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeDiff && (
+                <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-5 shadow-xs flex flex-col gap-4 h-[510px] max-h-[510px]">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#f0f0f0]">
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-black" />
+                      <h2 className="text-[15px] font-bold text-black font-sans">Layer Changes</h2>
+                    </div>
+                    {isFirstCommit && (
+                      <span className="text-[10px] bg-[#f0f0f4] border border-[#e0e0e4] text-[#666] font-semibold px-2.5 py-0.5 rounded-full">
+                        Initial commit baseline
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-4 overflow-y-auto pr-1 custom-scrollbar grow">
+                    {activeDiff.added.length > 0 && (
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-[12px] font-bold text-emerald-700">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                          <span>Added ({activeDiff.added.length})</span>
+                        </div>
+                        {activeDiff.added.map((n) => (
+                          <DiffRow key={n.id} node={n} kind="added" />
+                        ))}
+                      </div>
+                    )}
+
+                    {activeDiff.removed.length > 0 && (
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-[12px] font-bold text-red-700">
+                          <span className="w-2 h-2 rounded-full bg-red-500" />
+                          <span>Removed ({activeDiff.removed.length})</span>
+                        </div>
+                        {activeDiff.removed.map((n) => (
+                          <DiffRow key={n.id} node={n} kind="removed" />
+                        ))}
+                      </div>
+                    )}
+
+                    {activeDiff.modified.length > 0 && (
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between text-[12px] font-bold text-amber-700">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-amber-500" />
+                            <span>Modified ({activeDiff.modified.length})</span>
+                          </div>
+                          <span className="text-[10px] text-[#777] font-normal">Click any layer to view changed properties</span>
+                        </div>
+                        {activeDiff.modified.map((n) => (
+                          <DiffRow key={n.id} node={n} kind="modified" />
+                        ))}
+                      </div>
+                    )}
+
+                    {!isFirstCommit && totalChanges === 0 && (
+                      <div className="flex flex-col items-center py-12 gap-2 text-[#aaa] border border-dashed border-[#d5d5d5] rounded-lg bg-[#fafafa]">
+                        <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+                        <p className="text-[13px] font-bold text-black">No Layer Changes Detected</p>
+                        <p className="text-[11px] text-[#888888]">This commit matches the baseline commit structure exactly.</p>
+                      </div>
+                    )}
+
+                    {isFirstCommit && activeDiff.added.length === 0 && (
+                      <div className="flex flex-col items-center py-10 gap-2 text-center">
+                        <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                        <p className="text-[13px] font-bold text-black">First Commit Created</p>
+                        <p className="text-[11px] text-[#777777]">
+                          All <strong className="text-black">{commit.node_count || 0}</strong> Figma nodes are tracked in this initial version.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Developer Inspect */}
+            <div>
+              <DesignInspectPanel
+                nodes={commit?.nodes || []}
+                className="h-[578px] max-h-[578px]"
+              />
+            </div>
+          </div>
+        )}
       </main>
 
-      {/* Lightbox Modal for snapshot image */}
+      {/* Lightbox Modal */}
       {isLightboxOpen && commit.snapshot_url && (
         <div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6"

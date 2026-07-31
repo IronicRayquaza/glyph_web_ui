@@ -201,6 +201,7 @@ export default function DashboardClient() {
         name: repoName,
         fileKey: c.file_key,
         commits: 0,
+        stars: c.stars || 0,
         recentTimestamp: c.timestamp,
         description: `Figma frame component repository for "${repoName}".`,
       };

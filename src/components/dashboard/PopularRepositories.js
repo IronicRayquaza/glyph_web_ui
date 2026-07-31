@@ -34,7 +34,7 @@ export default function PopularRepositories({ reposList = [], onSelectFile }) {
 
                 <div className="flex items-center gap-0.5 text-[11px] text-[#555555] select-none">
                   <span className="material-symbols-outlined text-[13px] fill">star</span>
-                  <span>{repo.commits * 10}</span>
+                  <span>{repo.stars || 0}</span>
                 </div>
               </div>
 

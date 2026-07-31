@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { FolderOpen, Plus, GitBranch, Star, LayoutGrid } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FolderOpen, Plus, GitBranch, Star, LayoutGrid, ArrowRight } from "lucide-react";
 
 export default function DesignRepositoriesGrid({ reposList = [], commits = [], onSelectFile }) {
-  // Map latest snapshot image for each repository file
+  const router = useRouter();
+  // Map latest snapshot image strictly for each repository frame / file name
   const latestSnapshotMap = {};
   commits.forEach((c) => {
-    if (c.file_key && c.snapshot_url && !latestSnapshotMap[c.file_key]) {
-      latestSnapshotMap[c.file_key] = c.snapshot_url;
+    const key = c.frame_name || c.file_key;
+    if (key && c.snapshot_url && !latestSnapshotMap[key]) {
+      latestSnapshotMap[key] = c.snapshot_url;
     }
   });
 
@@ -48,12 +51,12 @@ export default function DesignRepositoriesGrid({ reposList = [], commits = [], o
                 className="border border-[#e0e0e0]/60 hover:border-black rounded-xl overflow-hidden bg-white/60 hover:bg-white/90 backdrop-blur-md shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer"
               >
                 {/* Thumbnail Preview Banner */}
-                <div className="h-32 bg-[#f4f4f6] relative overflow-hidden flex items-center justify-center border-b border-[#eeeeee]">
+                <div className="h-36 bg-[#f4f4f6] relative overflow-hidden flex items-center justify-center border-b border-[#eeeeee]">
                   {snapshotUrl ? (
                     <img
                       src={snapshotUrl}
                       alt={repo.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain p-2 bg-[#f8f8f9]"
                     />
                   ) : (
                     <div className="flex flex-col items-center gap-1 text-[#aaaaaa]">
@@ -76,7 +79,7 @@ export default function DesignRepositoriesGrid({ reposList = [], commits = [], o
                       </span>
                       <div className="flex items-center gap-1 text-[11px] font-medium text-[#666666]">
                         <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                        <span>{repo.commits * 10}</span>
+                        <span>{repo.stars || 0}</span>
                       </div>
                     </div>
                     <p className="text-[12px] text-[#666666] leading-snug line-clamp-2">
@@ -92,10 +95,10 @@ export default function DesignRepositoriesGrid({ reposList = [], commits = [], o
                     </div>
                     <button
                       type="button"
-                      onClick={() => onSelectFile && onSelectFile(repo.name)}
-                      className="text-[11px] font-bold text-black border border-[#c5c5c5] hover:bg-black hover:text-white px-2.5 py-1 rounded transition-colors cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/repos/${encodeURIComponent(repo.name)}`); }}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-black border border-[#c5c5c5] hover:bg-black hover:text-white px-2.5 py-1 rounded transition-colors cursor-pointer"
                     >
-                      Filter Activity
+                      View Repo <ArrowRight className="w-3 h-3" />
                     </button>
                   </div>
                 </div>

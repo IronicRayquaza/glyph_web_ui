@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Code,
   Copy,
@@ -182,10 +182,16 @@ function LayerTreeNode({ node, selectedId, onSelect, depth = 0 }) {
   );
 }
 
-export default function DesignInspectPanel({ nodes = [] }) {
+export default function DesignInspectPanel({ nodes = [], className = "h-[510px] max-h-[510px]" }) {
   const [selectedNode, setSelectedNode] = useState(nodes[0] || null);
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedCss, setCopiedCss] = useState(false);
+
+  useEffect(() => {
+    if (nodes && nodes.length > 0) {
+      setSelectedNode(nodes[0]);
+    }
+  }, [nodes]);
 
   const cssSpecs = selectedNode ? generateCssSpecs(selectedNode) : "";
   const fills = Array.isArray(selectedNode?.fills) ? selectedNode.fills : [];
@@ -200,16 +206,21 @@ export default function DesignInspectPanel({ nodes = [] }) {
   }
 
   return (
-    <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl overflow-hidden shadow-xs flex flex-col lg:flex-row h-[510px] max-h-[510px]">
+    <div className={`bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl overflow-hidden shadow-xs flex flex-col lg:flex-row ${className}`}>
       {/* LEFT: Layer Tree Browser */}
-      <div className="w-full lg:w-72 border-r border-[#e5e5e5]/40 flex flex-col bg-white/50 shrink-0 h-full">
-        <div className="p-3 border-b border-[#e5e5e5]/60 flex items-center gap-2 shrink-0">
-          <Layers className="w-4 h-4 text-black" />
-          <span className="text-[13px] font-semibold text-black font-sans">Layer Hierarchy</span>
+      <div className="w-full lg:w-64 border-r border-[#e5e5e5]/40 flex flex-col bg-white/50 shrink-0 h-full">
+        <div className="p-3 border-b border-[#e5e5e5]/60 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-black" />
+            <span className="text-[13px] font-semibold text-black font-sans">Layer Hierarchy</span>
+          </div>
+          <span className="text-[10px] font-mono text-[#888] font-semibold">
+            {nodes.length} nodes
+          </span>
         </div>
 
         {/* Tree List */}
-        <div className="p-2 overflow-y-auto max-h-[460px] grow flex flex-col gap-0.5 custom-scrollbar">
+        <div className="p-2 overflow-y-auto grow flex flex-col gap-0.5 custom-scrollbar">
           {nodes.length === 0 ? (
             <div className="p-4 text-center text-[#888] text-[12px]">No layers available to inspect</div>
           ) : (
@@ -226,7 +237,7 @@ export default function DesignInspectPanel({ nodes = [] }) {
       </div>
 
       {/* RIGHT: Developer CSS & Spec Sheet */}
-      <div className="grow p-4 flex flex-col gap-3.5 bg-white/60 backdrop-blur-md overflow-y-auto max-h-[520px] custom-scrollbar">
+      <div className="grow p-4 flex flex-col gap-3.5 bg-white/60 backdrop-blur-md overflow-y-auto h-full custom-scrollbar">
         {selectedNode ? (
           <>
             {/* Selected Node Header */}

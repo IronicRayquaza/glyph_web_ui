@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/layout/Header";
-import CustomRepoDropdown from "@/components/dashboard/CustomRepoDropdown";
 
 function timeAgo(dateString) {
   if (!dateString) return "";
@@ -388,37 +387,27 @@ export default function ActivityPage() {
             })}
           </div>
 
-          {/* Right Filters: Custom Repo Dropdown & Expanded Search Input */}
-          <div className="flex items-center gap-3">
-            {/* Custom Repo Dropdown */}
-            <CustomRepoDropdown
-              selectedRepo={selectedRepo}
-              setSelectedRepo={setSelectedRepo}
-              repoList={repoList}
+          {/* Search Input only */}
+          <div className="relative flex items-center ml-auto">
+            <span className="material-symbols-outlined text-[16px] text-[#888888] absolute left-3 pointer-events-none">
+              search
+            </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search activity description, author..."
+              className="pl-9 pr-8 py-2 border border-[#e0e0e0] focus:border-black rounded-lg bg-white text-[12px] font-medium text-black placeholder-[#999999] outline-none focus:ring-1 focus:ring-black transition-all w-64 sm:w-80 shadow-xs"
             />
-
-            {/* Expanded Search Input */}
-            <div className="relative flex items-center">
-              <span className="material-symbols-outlined text-[16px] text-[#888888] absolute left-3 pointer-events-none">
-                search
-              </span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search activity description, author, or repository..."
-                className="pl-9 pr-8 py-2 border border-[#e0e0e0] focus:border-black rounded-lg bg-white text-[12px] font-medium text-black placeholder-[#999999] outline-none focus:ring-1 focus:ring-black transition-all w-64 sm:w-80 md:w-96 shadow-xs"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 text-[#999999] hover:text-black cursor-pointer flex items-center justify-center p-0.5"
-                >
-                  <span className="material-symbols-outlined text-[14px]">close</span>
-                </button>
-              )}
-            </div>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 text-[#999999] hover:text-black cursor-pointer flex items-center justify-center p-0.5"
+              >
+                <span className="material-symbols-outlined text-[14px]">close</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -490,7 +479,7 @@ export default function ActivityPage() {
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setSelectedRepo(act.repo);
+                                  router.push(`/dashboard/repos/${encodeURIComponent(act.repo)}`);
                                 }}
                                 className="text-black font-medium hover:underline"
                               >
