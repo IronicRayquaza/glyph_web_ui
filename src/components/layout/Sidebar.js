@@ -71,6 +71,8 @@ export default function Sidebar() {
             let isSelected = false;
             if (tab.id === "Dashboard") {
               isSelected = pathname === "/dashboard" || pathname?.startsWith("/dashboard/commit");
+            } else if (tab.id === "Branches") {
+              isSelected = pathname?.startsWith("/dashboard/branches");
             } else if (tab.id === "Pull Requests") {
               isSelected = pathname?.startsWith("/dashboard/pulls");
             } else if (tab.id === "Activity") {

@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/layout/Header";
 
-export default function NewPullRequestPage() {
+function NewPullRequestContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -29,6 +30,39 @@ export default function NewPullRequestPage() {
   // Available files & branches from existing commits
   const [availableFiles, setAvailableFiles] = useState([]);
   const [availableBranches, setAvailableBranches] = useState([]);
+
+  // Real branches from dvc_branches table
+  const [dbBranches, setDbBranches] = useState([]);
+  const [sourceBranchId, setSourceBranchId] = useState("");
+  const [targetBranchId, setTargetBranchId] = useState("");
+
+  async function fetchDbBranches(fk, preSelectSourceId) {
+    if (!fk) { setDbBranches([]); return; }
+    try {
+      const { data } = await supabase
+        .from("dvc_branches")
+        .select("id,name,head_commit_id,file_key")
+        .order("created_at", { ascending: true });
+      const allRows = data || [];
+      let rows = allRows.filter(b => b.file_key === fk);
+      if (rows.length === 0 && allRows.length > 0) {
+        rows = allRows;
+      }
+      setDbBranches(rows);
+      // Pre-select source
+      if (preSelectSourceId && rows.some(b => b.id === preSelectSourceId)) {
+        setSourceBranchId(preSelectSourceId);
+      } else if (rows[0]) {
+        setSourceBranchId(rows[0].id);
+      }
+      // Default target = main
+      const main = rows.find(b => b.name === "main");
+      setTargetBranchId(main ? main.id : (rows[1]?.id || rows[0]?.id || ""));
+    } catch (e) {
+      console.error("Error fetching branches:", e.message);
+      setDbBranches([]);
+    }
+  }
 
   async function fetchNotifications(userId) {
     try {
@@ -66,37 +100,43 @@ export default function NewPullRequestPage() {
 
   useEffect(() => {
     async function init() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/login");
-        return;
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
       setUser(user);
 
-      // Fetch unique file_keys & page_names from commits
-      const { data } = await supabase
+      // Fetch unique repository names (frame_name || file_key) from commits and branches
+      const { data: commitsData } = await supabase
         .from("dvc_commits")
-        .select("file_key, page_name, author")
+        .select("file_key, frame_name, page_name, author")
         .order("timestamp", { ascending: false });
 
-      if (data) {
-        const files = [...new Set(data.map((d) => d.file_key))].filter(Boolean);
-        const branches = [...new Set(data.map((d) => d.page_name))].filter(Boolean);
-        setAvailableFiles(files);
-        setAvailableBranches(
-          branches.length ? branches : ["Page 1", "component-updates", "dark-mode-tokens"]
-        );
-        if (files[0]) setFileKey(files[0]);
-        if (branches[0]) setSourceBranch(branches[0]);
-      }
+      const { data: branchesData } = await supabase
+        .from("dvc_branches")
+        .select("file_key");
+
+      const commitRepos = (commitsData || []).map((d) => d.frame_name || d.file_key);
+      const branchRepos = (branchesData || []).map((b) => b.file_key);
+      const files = Array.from(new Set([...commitRepos, ...branchRepos])).filter(Boolean);
+
+      const branches = Array.from(new Set((commitsData || []).map((d) => d.page_name))).filter(Boolean);
+      setAvailableFiles(files);
+      setAvailableBranches(branches.length ? branches : ["Page 1", "component-updates", "dark-mode-tokens"]);
+
+      // Prefer fileKey from query params (e.g. ?fileKey=... or ?repo=...)
+      const qFileKey = searchParams.get("fileKey") || searchParams.get("repo");
+      const initialFile = qFileKey || files[0] || "";
+      setFileKey(initialFile);
+      if (branches[0]) setSourceBranch(branches[0]);
+
+      // Fetch real branches for initial file
+      const qSourceBranchId = searchParams.get("sourceBranchId");
+      if (initialFile) await fetchDbBranches(initialFile, qSourceBranchId);
 
       await fetchNotifications(user.id);
       setLoading(false);
     }
     init();
-  }, [router]);
+  }, [router]); // eslint-disable-line
 
   function addReviewer(emailToAdd) {
     const targetEmail = (emailToAdd || reviewerInput).trim();
@@ -144,14 +184,20 @@ export default function NewPullRequestPage() {
     setSubmitting(true);
 
     try {
+      // Resolve branch names from IDs for legacy columns
+      const srcBranch = dbBranches.find(b => b.id === sourceBranchId);
+      const tgtBranch = dbBranches.find(b => b.id === targetBranchId);
+
       const { data, error: insertError } = await supabase
         .from("dvc_pull_requests")
         .insert({
           title: title.trim(),
           description: description.trim(),
           file_key: fileKey,
-          source_branch: sourceBranch || "Page 1",
-          target_branch: targetBranch || "main",
+          source_branch: srcBranch?.name || sourceBranch || "—",
+          target_branch: tgtBranch?.name || targetBranch || "main",
+          source_branch_id: sourceBranchId || null,
+          target_branch_id: targetBranchId || null,
           status: "open",
           author: user.email,
           author_id: user.id,
@@ -273,15 +319,14 @@ export default function NewPullRequestPage() {
                   <span className="text-[12px] font-semibold text-[#666666]">Merging:</span>
                   <span className="bg-white border border-[#c5c5c5] font-mono text-[11px] font-bold text-black px-2.5 py-1 rounded flex items-center gap-1">
                     <span className="material-symbols-outlined text-[14px]">call_split</span>
-                    {sourceBranch || "Page 1"}
+                    {dbBranches.find(b => b.id === sourceBranchId)?.name || sourceBranch || "(source)"}
                   </span>
                   <span className="text-[#888888] font-bold">into</span>
                   <span className="bg-white border border-[#c5c5c5] font-mono text-[11px] font-bold text-black px-2.5 py-1 rounded flex items-center gap-1">
                     <span className="material-symbols-outlined text-[14px]">call_merge</span>
-                    {targetBranch || "main"}
+                    {dbBranches.find(b => b.id === targetBranchId)?.name || targetBranch || "main"}
                   </span>
                 </div>
-
                 <div className="text-[11px] text-[#777777]">
                   Target File: <strong className="text-black">gitdesign/{fileKey || "local"}</strong>
                 </div>
@@ -289,46 +334,64 @@ export default function NewPullRequestPage() {
 
               {/* Selectors Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
-                {/* Base Branch */}
+                {/* Base Branch (Target) */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold text-[#555555] uppercase tracking-wider">
                     Base Branch (Target)
                   </label>
                   <div className="relative">
-                    <span className="material-symbols-outlined text-[16px] text-[#888888] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      call_merge
-                    </span>
-                    <select
-                      value={targetBranch}
-                      onChange={(e) => setTargetBranch(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 border border-[#c5c5c5] rounded-lg bg-white text-[12px] font-bold text-black outline-none focus:border-black transition-colors cursor-pointer appearance-none"
-                    >
-                      <option value="main">main</option>
-                      <option value="develop">develop</option>
-                    </select>
+                    <span className="material-symbols-outlined text-[16px] text-[#888888] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">call_merge</span>
+                    {dbBranches.length > 0 ? (
+                      <select
+                        value={targetBranchId}
+                        onChange={(e) => setTargetBranchId(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 border border-[#c5c5c5] rounded-lg bg-white text-[12px] font-bold text-black outline-none focus:border-black transition-colors cursor-pointer appearance-none"
+                      >
+                        {dbBranches.map(b => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <select
+                        value={targetBranch}
+                        onChange={(e) => setTargetBranch(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 border border-[#c5c5c5] rounded-lg bg-white text-[12px] font-bold text-black outline-none focus:border-black transition-colors cursor-pointer appearance-none"
+                      >
+                        <option value="main">main</option>
+                        <option value="develop">develop</option>
+                      </select>
+                    )}
                   </div>
                 </div>
 
-                {/* Compare Branch */}
+                {/* Compare Branch (Source) */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold text-[#555555] uppercase tracking-wider">
                     Compare Branch (Source)
                   </label>
                   <div className="relative">
-                    <span className="material-symbols-outlined text-[16px] text-[#888888] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      call_split
-                    </span>
-                    <select
-                      value={sourceBranch}
-                      onChange={(e) => setSourceBranch(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 border border-[#c5c5c5] rounded-lg bg-white text-[12px] font-bold text-black outline-none focus:border-black transition-colors cursor-pointer appearance-none"
-                    >
-                      {availableBranches.map((b) => (
-                        <option key={b} value={b}>
-                          {b}
-                        </option>
-                      ))}
-                    </select>
+                    <span className="material-symbols-outlined text-[16px] text-[#888888] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">call_split</span>
+                    {dbBranches.length > 0 ? (
+                      <select
+                        value={sourceBranchId}
+                        onChange={(e) => setSourceBranchId(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 border border-[#c5c5c5] rounded-lg bg-white text-[12px] font-bold text-black outline-none focus:border-black transition-colors cursor-pointer appearance-none"
+                      >
+                        {dbBranches.map(b => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <select
+                        value={sourceBranch}
+                        onChange={(e) => setSourceBranch(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 border border-[#c5c5c5] rounded-lg bg-white text-[12px] font-bold text-black outline-none focus:border-black transition-colors cursor-pointer appearance-none"
+                      >
+                        {availableBranches.map((b) => (
+                          <option key={b} value={b}>{b}</option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 </div>
 
@@ -338,18 +401,14 @@ export default function NewPullRequestPage() {
                     Figma Design File
                   </label>
                   <div className="relative">
-                    <span className="material-symbols-outlined text-[16px] text-[#888888] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      folder_open
-                    </span>
+                    <span className="material-symbols-outlined text-[16px] text-[#888888] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">folder_open</span>
                     <select
                       value={fileKey}
-                      onChange={(e) => setFileKey(e.target.value)}
+                      onChange={(e) => { setFileKey(e.target.value); fetchDbBranches(e.target.value, null); }}
                       className="w-full pl-9 pr-3 py-2 border border-[#c5c5c5] rounded-lg bg-white text-[12px] font-bold text-black outline-none focus:border-black transition-colors cursor-pointer appearance-none"
                     >
                       {availableFiles.map((f) => (
-                        <option key={f} value={f}>
-                          gitdesign/{f}
-                        </option>
+                        <option key={f} value={f}>gitdesign/{f}</option>
                       ))}
                       {availableFiles.length === 0 && <option value="">gitdesign/local</option>}
                     </select>
@@ -608,5 +667,13 @@ export default function NewPullRequestPage() {
         </form>
       </main>
     </div>
+  );
+}
+
+export default function NewPullRequestPage() {
+  return (
+    <Suspense fallback={<div className="grow flex items-center justify-center text-[13px] text-[#888]">Loading…</div>}>
+      <NewPullRequestContent />
+    </Suspense>
   );
 }

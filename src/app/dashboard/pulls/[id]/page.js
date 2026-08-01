@@ -334,33 +334,71 @@ export default function PRDetailPage() {
         .order("created_at", { ascending: true });
       setReviews(reviewsData || []);
 
-      // Load related commits
+      // 4. Load related commits, design inspect nodes, and visual diff snapshots
       if (prData.file_key) {
-        const { data: commitData } = await supabase
+        // Fetch all commits for this repo (matching frame_name || file_key || branch_id)
+        const { data: repoCommits } = await supabase
           .from("dvc_commits")
-          .select("id, file_key, message, author, timestamp, node_count, snapshot_url")
-          .eq("file_key", prData.file_key)
-          .order("timestamp", { ascending: false })
-          .limit(6);
-        setCommits(commitData || []);
+          .select("id, file_key, frame_name, branch_id, message, author, timestamp, node_count, snapshot_url, nodes")
+          .order("timestamp", { ascending: false });
 
-        const withSnapshot = (commitData || []).filter((c) => c.snapshot_url);
-        if (withSnapshot.length >= 2) {
-          setAfterSnapshot(withSnapshot[0].snapshot_url);
-          setBeforeSnapshot(withSnapshot[1].snapshot_url);
-        } else if (withSnapshot.length === 1) {
-          setAfterSnapshot(withSnapshot[0].snapshot_url);
+        const filteredRepoCommits = (repoCommits || []).filter(
+          (c) =>
+            c.frame_name === prData.file_key ||
+            c.file_key === prData.file_key ||
+            c.branch_id === prData.source_branch_id ||
+            c.branch_id === prData.target_branch_id
+        );
+
+        // Filter commits belonging to the source branch if source_branch_id exists
+        let prCommits = [];
+        if (prData.source_branch_id) {
+          prCommits = filteredRepoCommits.filter((c) => c.branch_id === prData.source_branch_id);
+        }
+        if (prCommits.length === 0) {
+          prCommits = filteredRepoCommits;
         }
 
-        // Fetch nodes for inspect mode
-        const { data: latestCommitNodes } = await supabase
-          .from("dvc_commits")
-          .select("nodes")
-          .eq("file_key", prData.file_key)
-          .order("timestamp", { ascending: false })
-          .limit(1);
-        if (latestCommitNodes?.[0]?.nodes) {
-          setInspectNodes(latestCommitNodes[0].nodes);
+        setCommits(prCommits);
+
+        // Fetch source and target branch records to resolve head commits
+        const { data: branchesData } = await supabase
+          .from("dvc_branches")
+          .select("id, name, head_commit_id, file_key");
+
+        let srcBranch = (branchesData || []).find(
+          (b) => b.id === prData.source_branch_id || (b.file_key === prData.file_key && b.name === prData.source_branch)
+        );
+        let tgtBranch = (branchesData || []).find(
+          (b) => b.id === prData.target_branch_id || (b.file_key === prData.file_key && b.name === prData.target_branch)
+        );
+
+        let sourceHeadCommit = null;
+        let targetHeadCommit = null;
+
+        if (srcBranch?.head_commit_id) {
+          sourceHeadCommit = (repoCommits || []).find((c) => c.id === srcBranch.head_commit_id);
+        }
+        if (!sourceHeadCommit && prCommits.length > 0) {
+          sourceHeadCommit = prCommits[0];
+        }
+
+        if (tgtBranch?.head_commit_id) {
+          targetHeadCommit = (repoCommits || []).find((c) => c.id === tgtBranch.head_commit_id);
+        }
+        if (!targetHeadCommit && filteredRepoCommits.length > 1) {
+          targetHeadCommit = filteredRepoCommits.find((c) => c.id !== sourceHeadCommit?.id) || filteredRepoCommits[1];
+        }
+
+        // Set Visual Diff Snapshots
+        setAfterSnapshot(sourceHeadCommit?.snapshot_url || null);
+        setBeforeSnapshot(targetHeadCommit?.snapshot_url || null);
+
+        // Set Developer Inspect Mode nodes (from source branch head commit)
+        if (sourceHeadCommit?.nodes) {
+          setInspectNodes(sourceHeadCommit.nodes);
+        } else if (filteredRepoCommits[0]?.nodes) {
+          setInspectNodes(filteredRepoCommits[0].nodes);
         }
       }
 
@@ -428,6 +466,53 @@ export default function PRDetailPage() {
     if (!pr || !user) return;
     setMerging(true);
     try {
+      // 1. Resolve source branch head_commit_id
+      let sourceHeadId = null;
+      if (pr.source_branch_id) {
+        const { data: sb } = await supabase
+          .from("dvc_branches")
+          .select("head_commit_id")
+          .eq("id", pr.source_branch_id)
+          .single();
+        sourceHeadId = sb?.head_commit_id;
+      }
+      if (!sourceHeadId && pr.file_key && pr.source_branch) {
+        const { data: sb } = await supabase
+          .from("dvc_branches")
+          .select("head_commit_id")
+          .eq("file_key", pr.file_key)
+          .eq("name", pr.source_branch)
+          .single();
+        sourceHeadId = sb?.head_commit_id;
+      }
+      // Fallback: use latest commit for this file_key
+      if (!sourceHeadId && pr.file_key) {
+        const { data: lc } = await supabase
+          .from("dvc_commits")
+          .select("id")
+          .eq("file_key", pr.file_key)
+          .order("timestamp", { ascending: false })
+          .limit(1);
+        sourceHeadId = lc?.[0]?.id;
+      }
+
+      // 2. Advance target branch pointer to source branch head commit
+      if (sourceHeadId) {
+        if (pr.target_branch_id) {
+          await supabase
+            .from("dvc_branches")
+            .update({ head_commit_id: sourceHeadId })
+            .eq("id", pr.target_branch_id);
+        } else if (pr.file_key && pr.target_branch) {
+          await supabase
+            .from("dvc_branches")
+            .update({ head_commit_id: sourceHeadId })
+            .eq("file_key", pr.file_key)
+            .eq("name", pr.target_branch);
+        }
+      }
+
+      // 3. Mark PR as merged
       await supabase
         .from("dvc_pull_requests")
         .update({

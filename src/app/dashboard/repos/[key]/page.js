@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -27,7 +27,9 @@ import {
   GitBranch,
   Star,
   Eye,
-  History
+  History,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 
 function timeAgo(dateString) {
@@ -54,13 +56,20 @@ export default function RepositoryDetailPage() {
   const [user, setUser] = useState(null);
   const [commits, setCommits] = useState([]);
   const [pullRequests, setPullRequests] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  // Active Tab State: "overview", "commits", "pulls", "inspect"
+  // Active Tab State: "overview", "commits", "branches", "pulls", "inspect"
   const [activeTab, setActiveTab] = useState("overview");
   const [searchCommitQuery, setSearchCommitQuery] = useState("");
+
+  // Branch create state
+  const [newBranchName, setNewBranchName] = useState("");
+  const [creatingBranch, setCreatingBranch] = useState(false);
+  const [branchError, setBranchError] = useState("");
+  const [deletingBranchId, setDeletingBranchId] = useState(null);
 
   async function fetchNotifications(userId) {
     try {
@@ -132,6 +141,37 @@ export default function RepositoryDetailPage() {
 
         setCommits(commitRows);
         setPullRequests(prRows);
+
+        // Fetch branches for this repo (matching file_key, frame_name, or referenced branch_ids)
+        const commitFileKeys = [...new Set(commitRows.map(c => c.file_key).filter(Boolean))];
+        const commitBranchIds = [...new Set(commitRows.map(c => c.branch_id).filter(Boolean))];
+
+        const { data: allBranches } = await supabase
+          .from("dvc_branches")
+          .select("id,name,head_commit_id,created_at,file_key")
+          .order("created_at", { ascending: true });
+
+        const branchRows = (allBranches || []).filter(b =>
+          b.file_key === repoKey ||
+          commitFileKeys.includes(b.file_key) ||
+          commitBranchIds.includes(b.id)
+        );
+
+        // Enrich branches with head commit info
+        const headIds = (branchRows || []).map(b => b.head_commit_id).filter(Boolean);
+        let commitMap = {};
+        if (headIds.length) {
+          const { data: hcs } = await supabase
+            .from("dvc_commits")
+            .select("id,message,author,timestamp")
+            .in("id", headIds);
+          (hcs || []).forEach(c => { commitMap[c.id] = c; });
+        }
+        setBranches((branchRows || []).map(b => ({
+          ...b,
+          headCommit: b.head_commit_id ? commitMap[b.head_commit_id] || null : null,
+        })));
+
         await fetchNotifications(currentUser.id);
       } catch (e) {
         console.error("Error loading repo details:", e.message);
@@ -154,6 +194,43 @@ export default function RepositoryDetailPage() {
         c.id?.toLowerCase().includes(searchCommitQuery.toLowerCase())
     );
   }, [commits, searchCommitQuery]);
+
+  const branchMap = useMemo(() => {
+    const map = {};
+    branches.forEach((b) => { map[b.id] = b.name; });
+    return map;
+  }, [branches]);
+
+  async function handleCreateBranch() {
+    const raw = newBranchName.trim();
+    if (!raw) { setBranchError("Branch name is required."); return; }
+    const name = raw.toLowerCase().replace(/[^a-z0-9_\-.]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+    if (!name) { setBranchError("Invalid name — use letters, numbers, hyphens."); return; }
+    if (branches.some(b => b.name === name)) { setBranchError(`Branch "${name}" already exists.`); return; }
+    setBranchError(""); setCreatingBranch(true);
+    try {
+      const { data: nb, error } = await supabase
+        .from("dvc_branches")
+        .insert({ file_key: repoKey, name, created_by: user.id })
+        .select("id,name,head_commit_id,created_at")
+        .single();
+      if (error) throw error;
+      setBranches(prev => [...prev, { ...nb, headCommit: null }]);
+      setNewBranchName("");
+    } catch (e) {
+      setBranchError(e.message?.includes("unique") ? `Branch "${name}" already exists.` : e.message);
+    } finally { setCreatingBranch(false); }
+  }
+
+  async function handleDeleteBranch(branchId, branchName) {
+    if (!confirm(`Delete branch "${branchName}"? This cannot be undone.`)) return;
+    setDeletingBranchId(branchId);
+    try {
+      await supabase.from("dvc_branches").delete().eq("id", branchId);
+      setBranches(prev => prev.filter(b => b.id !== branchId));
+    } catch (e) { alert("Error: " + e.message); }
+    finally { setDeletingBranchId(null); }
+  }
 
   if (loading) {
     return (
@@ -295,6 +372,18 @@ export default function RepositoryDetailPage() {
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab("branches")}
+            className={`flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${
+              activeTab === "branches"
+                ? "bg-black text-white shadow-xs"
+                : "bg-white/60 text-[#666] hover:bg-white hover:text-black border border-[#e0e0e4]"
+            }`}
+          >
+            <GitBranch className="w-3.5 h-3.5" />
+            Branches ({branches.length})
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab("inspect")}
             className={`flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${
               activeTab === "inspect"
@@ -382,6 +471,10 @@ export default function RepositoryDetailPage() {
                           <div className="flex items-center gap-2 text-[11px] text-[#666]">
                             <span className="font-mono text-[10px] bg-[#f0f0f4] border border-[#e0e0e0] px-1.5 py-0.5 rounded text-black font-semibold">
                               {c.id.slice(0, 7)}
+                            </span>
+                            <span className="font-mono text-[10px] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-slate-800 font-semibold flex items-center gap-1">
+                              <GitBranch className="w-2.5 h-2.5 text-slate-500" />
+                              {c.branch_id && branchMap[c.branch_id] ? branchMap[c.branch_id] : (c.page_name || "main")}
                             </span>
                             <span>by {c.author}</span>
                             <span>&middot;</span>
@@ -491,6 +584,10 @@ export default function RepositoryDetailPage() {
                           <span className="font-mono text-[10px] bg-white border border-[#e0e0e0] px-1.5 py-0.5 rounded text-black font-semibold">
                             {c.id.slice(0, 7)}
                           </span>
+                          <span className="font-mono text-[10px] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-slate-800 font-semibold flex items-center gap-1">
+                            <GitBranch className="w-2.5 h-2.5 text-slate-500" />
+                            {c.branch_id && branchMap[c.branch_id] ? branchMap[c.branch_id] : (c.page_name || "main")}
+                          </span>
                           <span>by {c.author}</span>
                           <span>&middot;</span>
                           <span>{timeAgo(c.timestamp)}</span>
@@ -581,7 +678,125 @@ export default function RepositoryDetailPage() {
           </div>
         )}
 
-        {/* TAB 4: DESIGN INSPECT MODE */}
+        {/* TAB 4: BRANCHES */}
+        {activeTab === "branches" && (
+          <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-6 shadow-xs flex flex-col gap-6">
+            <div className="flex items-center justify-between pb-3 border-b border-[#f0f0f4] flex-wrap gap-3">
+              <div className="flex items-center gap-2">
+                <GitBranch className="w-5 h-5 text-black" />
+                <h2 className="text-[16px] font-semibold text-black font-sans">
+                  Branches for gitdesign/{repoKey}
+                </h2>
+              </div>
+
+              {/* Quick Branch Creator Inline */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="text"
+                  value={newBranchName}
+                  onChange={(e) => setNewBranchName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleCreateBranch()}
+                  placeholder="New branch name..."
+                  className="px-3 py-1.5 border border-[#e0e0e4] focus:border-black rounded-lg bg-white text-[12px] text-black outline-none w-48 shadow-2xs"
+                />
+                <button
+                  type="button"
+                  onClick={handleCreateBranch}
+                  disabled={creatingBranch}
+                  className="bg-black text-white hover:bg-black/90 font-semibold text-[12px] px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer disabled:opacity-40"
+                >
+                  {creatingBranch ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                  Create Branch
+                </button>
+              </div>
+            </div>
+
+            {branchError && (
+              <p className="text-[12px] text-[#f85149] bg-[#fff0ef] border border-[#fecaca] rounded-lg px-3 py-2">
+                {branchError}
+              </p>
+            )}
+
+            <div className="flex flex-col divide-y divide-[#f0f0f4]">
+              {branches.length === 0 ? (
+                <div className="py-12 text-center text-[#888] text-[13px]">
+                  No branches found for gitdesign/{repoKey}.
+                </div>
+              ) : (
+                branches.map((b) => {
+                  const isMain = b.name === "main";
+                  const isDel = deletingBranchId === b.id;
+                  return (
+                    <div
+                      key={b.id}
+                      className="py-4 flex items-center justify-between hover:bg-white/70 px-3 rounded-xl transition-colors group"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0 grow">
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                            isMain ? "bg-black" : "bg-[#f0f0f0]"
+                          }`}
+                        >
+                          <GitBranch className={`w-3.5 h-3.5 ${isMain ? "text-white" : "text-[#555]"}`} />
+                        </div>
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[14px] font-semibold text-black truncate">
+                              {b.name}
+                            </span>
+                            {isMain && (
+                              <span className="bg-black text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                                default
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-[#888] flex-wrap">
+                            <Clock className="w-3 h-3 text-[#bbb]" />
+                            <span>Created {timeAgo(b.created_at)}</span>
+                            {b.headCommit && (
+                              <>
+                                <span>&middot;</span>
+                                <span className="font-mono text-[10px] bg-white border border-[#e0e0e0] px-1.5 py-0.5 rounded text-black">
+                                  {b.headCommit.id?.slice(0, 7)}: {b.headCommit.message}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 ml-4">
+                        <Link
+                          href={`/dashboard/pulls/new?sourceBranchId=${encodeURIComponent(b.id)}&fileKey=${encodeURIComponent(repoKey)}`}
+                          className="flex items-center gap-1.5 text-[11px] font-medium text-[#555] hover:text-black border border-[#e2e2e2] rounded-lg px-2.5 py-1.5 hover:border-black transition-colors bg-white shadow-2xs"
+                        >
+                          <GitPullRequest className="w-3.5 h-3.5" />
+                          Open PR
+                        </Link>
+                        {!isMain && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBranch(b.id, b.name)}
+                            disabled={isDel}
+                            className="w-7 h-7 flex items-center justify-center text-[#ccc] hover:text-[#f85149] hover:bg-[#fff0ef] rounded-lg border border-transparent hover:border-[#fecaca] transition-colors cursor-pointer"
+                          >
+                            {isDel ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: DESIGN INSPECT MODE */}
         {activeTab === "inspect" && (
           <div className="flex flex-col gap-4">
             <div className="bg-white/70 backdrop-blur-lg p-4 rounded-xl border border-[#e5e5e5]/50 shadow-xs flex items-center justify-between">
