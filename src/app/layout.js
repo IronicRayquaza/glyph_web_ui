@@ -3,6 +3,11 @@ import "./globals.css";
 export const metadata = {
   title: "GitDesign — Git for Figma. Version Control for Designers.",
   description: "GitDesign brings repos, commits, branches, and pull requests to Figma. Track every design change, review with structured pull requests, and never lose a version again. Free Figma plugin.",
+  icons: {
+    icon: "/favicon.png?v=2",
+    shortcut: "/favicon.png?v=2",
+    apple: "/favicon.png?v=2",
+  },
   openGraph: {
     title: "GitDesign — Git for Figma. Version Control for Designers.",
     description: "Track every design change, review with pull requests, and never lose a version again. Free Figma plugin.",
@@ -17,6 +22,8 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className="antialiased">
       <head>
+        <link rel="icon" href="/favicon.png?v=2" type="image/png" />
+        <link rel="shortcut icon" href="/favicon.ico?v=2" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Geist:wght@400;500&display=swap" rel="stylesheet" />

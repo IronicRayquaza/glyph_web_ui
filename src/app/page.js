@@ -150,8 +150,18 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] font-sans antialiased selection:bg-black selection:text-white flex flex-col relative">
-      {/* ── BACKGROUND ATMOSPHERIC LIGHTING ── */}
-      <div className="fixed inset-0 pointer-events-none z-0">
+      {/* ── BACKGROUND ATMOSPHERIC LIGHTING / VIDEO ── */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover opacity-20 filter blur-[1px]"
+        >
+          <source src="/landing-bg.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-[1px]" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-250 h-125 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(0,0,0,0.07),rgba(255,255,255,0))]" />
       </div>
 
