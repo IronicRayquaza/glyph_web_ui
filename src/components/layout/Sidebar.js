@@ -58,7 +58,7 @@ export default function Sidebar() {
           <BookOpen className="w-5 h-5 text-black stroke-[2.2]" />
         </div>
         <div className="flex flex-col truncate">
-          <span className="text-[13px] font-bold text-black tracking-tight leading-snug">GitDesign</span>
+          <span className="text-[13px] font-bold text-black tracking-tight leading-snug">Oleidian</span>
           <span className="text-[11px] text-[#777777] font-medium leading-none">Design Systems</span>
         </div>
       </div>
@@ -120,7 +120,7 @@ export default function Sidebar() {
                   }`}
                 >
                   <FolderOpen className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">gitdesign/{key}</span>
+                  <span className="truncate">oleidian/{key}</span>
                 </Link>
               );
             })}

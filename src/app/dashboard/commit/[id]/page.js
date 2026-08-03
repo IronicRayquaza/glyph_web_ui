@@ -223,9 +223,9 @@ function DiffRow({ node, kind }) {
                 {CHANGED_PROP_LABELS[prop.key] || prop.key}
               </span>
               <div className="flex items-start gap-2 text-[11px]">
-                <span className="flex-1 font-mono bg-red-50 border border-red-200 text-red-700 px-2 py-0.5 rounded truncate">{String(prop.before ?? "—")}</span>
+                <span className="flex-1 font-mono bg-red-50 border border-red-200 text-red-700 px-2 py-0.5 rounded truncate">{String(prop.before ?? "-")}</span>
                 <span className="text-[#666] font-bold shrink-0">→</span>
-                <span className="flex-1 font-mono bg-emerald-50 border border-emerald-200 text-emerald-700 px-2 py-0.5 rounded truncate">{String(prop.after ?? "—")}</span>
+                <span className="flex-1 font-mono bg-emerald-50 border border-emerald-200 text-emerald-700 px-2 py-0.5 rounded truncate">{String(prop.after ?? "-")}</span>
               </div>
             </div>
           ))}
@@ -350,68 +350,92 @@ export default function CommitDetailPage() {
     }
   }
 
-  async function loadCommit() {
-    setLoading(true);
-    try {
-      const {
-        data: { user: currentUser },
-      } = await supabase.auth.getUser();
-      if (!currentUser) {
-        router.push("/login");
-        return;
-      }
-      setUser(currentUser);
+  useEffect(() => {
+    let isCancelled = false;
 
-      const { data: c, error } = await supabase
-        .from("dvc_commits")
-        .select("*")
-        .eq("id", commitId)
-        .maybeSingle();
+    async function loadCommitData() {
+      try {
+        const {
+          data: { user: currentUser },
+        } = await supabase.auth.getUser();
 
-      if (error || !c) {
-        router.push("/dashboard");
-        return;
-      }
-      setCommit(c);
+        if (isCancelled) return;
+        if (!currentUser) {
+          router.push("/login");
+          return;
+        }
+        setUser(currentUser);
 
-      // Fetch all commits for the same frame/file for comparison dropdown
-      const { data: repoCommitRows } = await supabase
-        .from("dvc_commits")
-        .select("id, message, author, timestamp, snapshot_url, frame_name, file_key, nodes")
-        .eq("file_key", c.file_key)
-        .neq("id", commitId)
-        .order("timestamp", { ascending: false });
-
-      const repoCommits = (repoCommitRows || []).filter(
-        (r) => (c.frame_name ? r.frame_name === c.frame_name : true)
-      );
-      setAllRepoCommits(repoCommits);
-
-      // Fetch parent commit for diff + comparison
-      let parentObj = null;
-      if (c.parent_id) {
-        const { data: parentRows } = await supabase
+        const { data: c, error } = await supabase
           .from("dvc_commits")
           .select("*")
-          .eq("id", c.parent_id);
-        parentObj = parentRows?.[0] || null;
-      } else {
-        parentObj = repoCommits[0] || null;
+          .eq("id", commitId)
+          .maybeSingle();
+
+        if (isCancelled) return;
+        if (error || !c) {
+          router.push("/dashboard");
+          return;
+        }
+        setCommit(c);
+
+        // Fetch all commits for the same frame/file for comparison dropdown
+        const { data: repoCommitRows } = await supabase
+          .from("dvc_commits")
+          .select("id, message, author, timestamp, snapshot_url, frame_name, file_key, nodes")
+          .eq("file_key", c.file_key)
+          .neq("id", commitId)
+          .order("timestamp", { ascending: false });
+
+        if (isCancelled) return;
+        const repoCommits = (repoCommitRows || []).filter(
+          (r) => (c.frame_name ? r.frame_name === c.frame_name : true)
+        );
+        setAllRepoCommits(repoCommits);
+
+        // Fetch parent commit for diff + comparison
+        let parentObj = null;
+        if (c.parent_id) {
+          const { data: parentRows } = await supabase
+            .from("dvc_commits")
+            .select("*")
+            .eq("id", c.parent_id);
+          parentObj = parentRows?.[0] || null;
+        } else {
+          parentObj = repoCommits[0] || null;
+        }
+
+        if (isCancelled) return;
+        setParentCommit(parentObj);
+        setSelectedCompareCommit(parentObj);
+
+        // Fetch notifications for header
+        try {
+          const { data: notifData } = await supabase
+            .from("dvc_notifications")
+            .select("*")
+            .eq("user_id", currentUser.id)
+            .order("created_at", { ascending: false })
+            .limit(20);
+          if (!isCancelled) setNotifications(notifData || []);
+        } catch {
+          if (!isCancelled) setNotifications([]);
+        }
+      } catch (e) {
+        console.error("Error loading commit:", e.message);
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
-
-      setParentCommit(parentObj);
-      setSelectedCompareCommit(parentObj);
-      await fetchNotifications(currentUser.id);
-    } catch (e) {
-      console.error("Error loading commit:", e.message);
-    } finally {
-      setLoading(false);
     }
-  }
 
-  useEffect(() => {
-    loadCommit();
-  }, [commitId]);
+    loadCommitData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [commitId, router]);
 
   const activeBaselineCommit = compareMode ? (selectedCompareCommit || parentCommit) : parentCommit;
 
@@ -534,7 +558,7 @@ export default function CommitDetailPage() {
               <FolderGit2 className="w-3.5 h-3.5 text-black" />
               <span>Repository:</span>
               <span className="font-mono font-bold text-black bg-[#f0f0f4] px-1.5 py-0.5 rounded border border-[#e0e0e4]">
-                gitdesign/{commit.frame_name || commit.file_key}
+                oleidian/{commit.frame_name || commit.file_key}
               </span>
             </div>
 
@@ -606,11 +630,10 @@ export default function CommitDetailPage() {
               <button
                 type="button"
                 onClick={() => setCompareMode((v) => !v)}
-                className={`flex items-center gap-2 text-[12px] font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
-                  compareMode
+                className={`flex items-center gap-2 text-[12px] font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${compareMode
                     ? "bg-black text-white border-black shadow-xs"
                     : "bg-white/80 text-[#555] border-[#d5d5d5] hover:border-black hover:text-black"
-                }`}
+                  }`}
               >
                 <SplitSquareHorizontal className="w-3.5 h-3.5" />
                 {compareMode ? "Comparing" : "Compare"}
@@ -672,7 +695,7 @@ export default function CommitDetailPage() {
                   <p className="text-[13px] font-semibold text-black">No Parent Snapshot Available</p>
                   <p className="text-[11px] text-[#888]">
                     {isFirstCommit
-                      ? "This is the first commit — there is no previous version to compare."
+                      ? "This is the first commit - there is no previous version to compare."
                       : "The parent commit doesn't have a snapshot captured."}
                   </p>
                 </div>
@@ -681,7 +704,7 @@ export default function CommitDetailPage() {
               <div className="rounded-xl overflow-hidden border border-[#e0e0e0] bg-[#f4f4f6] relative" style={{ minHeight: "420px" }}>
                 <img
                   src={commit.snapshot_url}
-                  alt={`Snapshot — ${commit.frame_name || "Figma Frame"}`}
+                  alt={`Snapshot - ${commit.frame_name || "Figma Frame"}`}
                   className="w-full h-full object-contain p-3"
                   style={{ minHeight: "420px" }}
                   onError={() => setSnapshotError(true)}
@@ -763,7 +786,7 @@ export default function CommitDetailPage() {
 
                 {/* Scrollable Layer Changes List */}
                 {totalChanges > 0 && (
-                  <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-4 shadow-xs flex flex-col gap-3 max-h-[260px] overflow-y-auto custom-scrollbar">
+                  <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-4 shadow-xs flex flex-col gap-3 max-h-65 overflow-y-auto custom-scrollbar">
                     <div className="flex items-center justify-between pb-2 border-b border-[#f0f0f0]">
                       <div className="flex items-center gap-2">
                         <Layers className="w-4 h-4 text-black" />
@@ -861,8 +884,8 @@ export default function CommitDetailPage() {
                       {isFirstCommit
                         ? "Initial Commit"
                         : totalChanges === 0
-                        ? "No layer changes vs. parent"
-                        : `${totalChanges} layer${totalChanges !== 1 ? "s" : ""} modified`}
+                          ? "No layer changes vs. parent"
+                          : `${totalChanges} layer${totalChanges !== 1 ? "s" : ""} modified`}
                     </span>
                   </div>
 
@@ -895,7 +918,7 @@ export default function CommitDetailPage() {
               )}
 
               {activeDiff && (
-                <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-5 shadow-xs flex flex-col gap-4 h-[510px] max-h-[510px]">
+                <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-5 shadow-xs flex flex-col gap-4 h-127.5 max-h-127.5">
                   <div className="flex items-center justify-between pb-3 border-b border-[#f0f0f0]">
                     <div className="flex items-center gap-2">
                       <Layers className="w-4 h-4 text-black" />

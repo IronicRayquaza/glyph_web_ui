@@ -74,7 +74,7 @@ export default function RecentCommits({ filteredCommits = [], onSelectFile, time
                       }}
                       className="font-medium text-black hover:underline"
                     >
-                      gitdesign/{c.frame_name || c.file_key}
+                      oleidian/{c.frame_name || c.file_key}
                     </button>
                     <span>&middot;</span>
                     <span>{timeAgo(c.timestamp)}</span>

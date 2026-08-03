@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { Star } from "lucide-react";
 
 export default function PopularRepositories({ reposList = [], onSelectFile }) {
   const router = useRouter();
@@ -32,8 +33,8 @@ export default function PopularRepositories({ reposList = [], onSelectFile }) {
                   {repo.name}
                 </button>
 
-                <div className="flex items-center gap-0.5 text-[11px] text-[#555555] select-none">
-                  <span className="material-symbols-outlined text-[13px] fill">star</span>
+                <div className="flex items-center gap-1 text-[11px] text-[#555555] select-none">
+                  <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                   <span>{repo.stars || 0}</span>
                 </div>
               </div>

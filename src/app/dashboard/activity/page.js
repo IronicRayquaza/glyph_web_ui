@@ -5,6 +5,21 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/layout/Header";
+import {
+  GitCommit,
+  FolderGit2,
+  GitPullRequest,
+  GitMerge,
+  CheckCircle2,
+  MessageSquare,
+  History,
+  Layers,
+  Search,
+  X,
+  Plus,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
 
 function timeAgo(dateString) {
   if (!dateString) return "";
@@ -154,7 +169,7 @@ export default function ActivityPage() {
         id: `commit-${c.id}`,
         category: isInit ? "repo" : "commit",
         type: isInit ? "repo_created" : "commit",
-        title: isInit ? `Initialized repository "gitdesign/${c.file_key}"` : c.message,
+        title: isInit ? `Initialized repository "oleidian/${c.file_key}"` : c.message,
         author: c.author || "Designer",
         timestamp: c.timestamp,
         repo: c.file_key,
@@ -265,19 +280,19 @@ export default function ActivityPage() {
   const getActivityIconStyle = (type) => {
     switch (type) {
       case "commit":
-        return { icon: "commit", color: "bg-emerald-100 text-emerald-700 border-emerald-300" };
+        return { Icon: GitCommit, color: "bg-emerald-100 text-emerald-700 border-emerald-300" };
       case "repo_created":
-        return { icon: "folder_special", color: "bg-purple-100 text-purple-700 border-purple-300" };
+        return { Icon: FolderGit2, color: "bg-purple-100 text-purple-700 border-purple-300" };
       case "pr_created":
-        return { icon: "merge_type", color: "bg-blue-100 text-blue-700 border-blue-300" };
+        return { Icon: GitPullRequest, color: "bg-blue-100 text-blue-700 border-blue-300" };
       case "pr_merged":
-        return { icon: "call_merge", color: "bg-indigo-100 text-indigo-700 border-indigo-300" };
+        return { Icon: GitMerge, color: "bg-indigo-100 text-indigo-700 border-indigo-300" };
       case "pr_approved":
-        return { icon: "check_circle", color: "bg-emerald-100 text-emerald-700 border-emerald-300" };
+        return { Icon: CheckCircle2, color: "bg-emerald-100 text-emerald-700 border-emerald-300" };
       case "review":
-        return { icon: "rate_review", color: "bg-amber-100 text-amber-700 border-amber-300" };
+        return { Icon: MessageSquare, color: "bg-amber-100 text-amber-700 border-amber-300" };
       default:
-        return { icon: "history", color: "bg-gray-100 text-gray-700 border-gray-300" };
+        return { Icon: History, color: "bg-gray-100 text-gray-700 border-gray-300" };
     }
   };
 
@@ -296,9 +311,7 @@ export default function ActivityPage() {
         />
         <main className="grow p-6 md:p-8 w-full max-w-[1600px] mx-auto flex flex-col items-center justify-center min-h-125">
           <div className="flex flex-col items-center gap-3">
-            <span className="material-symbols-outlined animate-spin text-[32px] text-black">
-              progress_activity
-            </span>
+            <Loader2 className="w-8 h-8 animate-spin text-black" />
             <p className="text-[13px] text-[#666666] font-medium">Loading Activity Stream...</p>
           </div>
         </main>
@@ -345,7 +358,7 @@ export default function ActivityPage() {
             href="/dashboard/pulls/new"
             className="bg-black text-white hover:bg-black/90 font-medium text-[12px] px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs shrink-0 cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[16px]">add</span>
+            <Plus className="w-4 h-4" />
             New Pull Request
           </Link>
         </div>
@@ -355,13 +368,14 @@ export default function ActivityPage() {
           {/* Category Tabs */}
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
             {[
-              { id: "all", label: "All Activity", count: counts.all, icon: "grain" },
-              { id: "commit", label: "Commits", count: counts.commit, icon: "commit" },
-              { id: "pr", label: "Pull Requests", count: counts.pr, icon: "merge_type" },
-              { id: "repo", label: "Repositories", count: counts.repo, icon: "folder_open" },
-              { id: "review", label: "Reviews", count: counts.review, icon: "rate_review" },
+              { id: "all", label: "All Activity", count: counts.all, Icon: Layers },
+              { id: "commit", label: "Commits", count: counts.commit, Icon: GitCommit },
+              { id: "pr", label: "Pull Requests", count: counts.pr, Icon: GitPullRequest },
+              { id: "repo", label: "Repositories", count: counts.repo, Icon: FolderGit2 },
+              { id: "review", label: "Reviews", count: counts.review, Icon: MessageSquare },
             ].map((tab) => {
               const isSelected = activeTab === tab.id;
+              const TabIcon = tab.Icon;
               return (
                 <button
                   key={tab.id}
@@ -373,7 +387,7 @@ export default function ActivityPage() {
                       : "text-[#555555] hover:bg-white/60 hover:text-black"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[15px]">{tab.icon}</span>
+                  <TabIcon className="w-3.5 h-3.5" />
                   <span>{tab.label}</span>
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
@@ -389,9 +403,7 @@ export default function ActivityPage() {
 
           {/* Search Input only */}
           <div className="relative flex items-center ml-auto">
-            <span className="material-symbols-outlined text-[16px] text-[#888888] absolute left-3 pointer-events-none">
-              search
-            </span>
+            <Search className="w-4 h-4 text-[#888888] absolute left-3 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
@@ -405,7 +417,7 @@ export default function ActivityPage() {
                 onClick={() => setSearchQuery("")}
                 className="absolute right-2.5 text-[#999999] hover:text-black cursor-pointer flex items-center justify-center p-0.5"
               >
-                <span className="material-symbols-outlined text-[14px]">close</span>
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
@@ -415,7 +427,7 @@ export default function ActivityPage() {
         <div className="flex flex-col gap-6">
           {Object.keys(groupedActivities).length === 0 ? (
             <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-12 text-center flex flex-col items-center gap-3 text-[#888888]">
-              <span className="material-symbols-outlined text-[36px] opacity-40">history</span>
+              <History className="w-9 h-9 opacity-40 text-black" />
               <p className="text-[14px] font-bold text-black">No activity found</p>
               <p className="text-[12px]">No events match the selected category, repository, or search filter.</p>
               <button
@@ -445,6 +457,7 @@ export default function ActivityPage() {
                 <div className="flex flex-col gap-3">
                   {items.map((act) => {
                     const style = getActivityIconStyle(act.type);
+                    const ActIcon = style.Icon;
                     return (
                       <div
                         key={act.id}
@@ -456,7 +469,7 @@ export default function ActivityPage() {
                           <div
                             className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${style.color}`}
                           >
-                            <span className="material-symbols-outlined text-[18px]">{style.icon}</span>
+                            <ActIcon className="w-4.5 h-4.5" />
                           </div>
 
                           {/* Details */}
@@ -483,7 +496,7 @@ export default function ActivityPage() {
                                 }}
                                 className="text-black font-medium hover:underline"
                               >
-                                gitdesign/{act.repo}
+                                oleidian/{act.repo}
                               </button>
                               <span>&middot;</span>
                               <span>{timeAgo(act.timestamp)}</span>
@@ -526,9 +539,7 @@ export default function ActivityPage() {
                             </div>
                           )}
 
-                          <span className="material-symbols-outlined text-[18px] text-[#999999] group-hover:text-black group-hover:translate-x-0.5 transition-transform">
-                            chevron_right
-                          </span>
+                          <ChevronRight className="w-4.5 h-4.5 text-[#999999] group-hover:text-black group-hover:translate-x-0.5 transition-transform" />
                         </div>
                       </div>
                     );

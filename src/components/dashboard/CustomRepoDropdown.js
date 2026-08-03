@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { FolderGit2, ChevronDown, Check } from "lucide-react";
 
 export default function CustomRepoDropdown({ selectedRepo, setSelectedRepo, repoList = [] }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,7 +19,7 @@ export default function CustomRepoDropdown({ selectedRepo, setSelectedRepo, repo
 
   const options = [
     { value: "__all__", label: "All Repositories" },
-    ...repoList.map((r) => ({ value: r, label: `gitdesign/${r}` })),
+    ...repoList.map((r) => ({ value: r, label: `oleidian/${r}` })),
   ];
 
   const selectedOption = options.find((o) => o.value === selectedRepo) || options[0];
@@ -31,16 +32,14 @@ export default function CustomRepoDropdown({ selectedRepo, setSelectedRepo, repo
         className="bg-white hover:bg-[#fafafa] border border-[#e0e0e0] focus:border-black rounded-lg px-3.5 py-2 text-[12px] font-bold text-black flex items-center gap-2.5 transition-colors cursor-pointer shadow-xs min-w-48 justify-between"
       >
         <div className="flex items-center gap-2 truncate">
-          <span className="material-symbols-outlined text-[16px] text-[#666666]">folder_open</span>
+          <FolderGit2 className="w-4 h-4 text-[#666666] shrink-0" />
           <span className="truncate">{selectedOption.label}</span>
         </div>
-        <span
-          className={`material-symbols-outlined text-[16px] text-[#888888] transition-transform duration-200 shrink-0 ${
+        <ChevronDown
+          className={`w-4 h-4 text-[#888888] transition-transform duration-200 shrink-0 ${
             isOpen ? "rotate-180" : ""
           }`}
-        >
-          unfold_more
-        </span>
+        />
       </button>
 
       {isOpen && (
@@ -65,7 +64,7 @@ export default function CustomRepoDropdown({ selectedRepo, setSelectedRepo, repo
                 >
                   <span className="truncate">{opt.label}</span>
                   {isSelected && (
-                    <span className="material-symbols-outlined text-[15px] text-black shrink-0">check</span>
+                    <Check className="w-4 h-4 text-black shrink-0" />
                   )}
                 </button>
               );

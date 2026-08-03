@@ -108,7 +108,6 @@ export default function RepositoryDetailPage() {
   useEffect(() => {
     async function init() {
       if (!repoKey) return;
-      setLoading(true);
       try {
         const {
           data: { user: currentUser },
@@ -205,7 +204,7 @@ export default function RepositoryDetailPage() {
     const raw = newBranchName.trim();
     if (!raw) { setBranchError("Branch name is required."); return; }
     const name = raw.toLowerCase().replace(/[^a-z0-9_\-.]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
-    if (!name) { setBranchError("Invalid name — use letters, numbers, hyphens."); return; }
+    if (!name) { setBranchError("Invalid name - use letters, numbers, hyphens."); return; }
     if (branches.some(b => b.name === name)) { setBranchError(`Branch "${name}" already exists.`); return; }
     setBranchError(""); setCreatingBranch(true);
     try {
@@ -247,9 +246,7 @@ export default function RepositoryDetailPage() {
         />
         <main className="grow p-6 md:p-8 w-full max-w-[1600px] mx-auto flex flex-col items-center justify-center min-h-125">
           <div className="flex flex-col items-center gap-3">
-            <span className="material-symbols-outlined animate-spin text-[32px] text-black">
-              progress_activity
-            </span>
+            <Loader2 className="w-8 h-8 animate-spin text-black" />
             <p className="text-[13px] text-[#666666] font-medium">Loading Repository Hub...</p>
           </div>
         </main>
@@ -289,7 +286,7 @@ export default function RepositoryDetailPage() {
               <div className="flex items-center gap-2">
                 <FolderGit2 className="w-6 h-6 text-black" />
                 <div className="flex items-center gap-1.5 text-[20px] font-semibold text-black font-sans tracking-tight">
-                  <span className="text-[#666]">gitdesign /</span>
+                  <span className="text-[#666]">oleidian /</span>
                   <span>{repoKey}</span>
                 </div>
                 <span className="text-[11px] font-medium text-[#666] bg-[#f0f0f4] px-2.5 py-0.5 rounded-full border border-[#e0e0e4] ml-2">
@@ -300,7 +297,7 @@ export default function RepositoryDetailPage() {
 
             <div className="flex items-center gap-2">
               <Link
-                href={`/dashboard/pulls/new?repo=${repoKey}`}
+                href={`/dashboard/pulls/new?fileKey=${encodeURIComponent(repoKey)}`}
                 className="bg-black text-white hover:bg-black/90 font-medium text-[12px] px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
@@ -337,11 +334,10 @@ export default function RepositoryDetailPage() {
           <button
             type="button"
             onClick={() => setActiveTab("overview")}
-            className={`flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${
-              activeTab === "overview"
+            className={`flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${activeTab === "overview"
                 ? "bg-black text-white shadow-xs"
                 : "bg-white/60 text-[#666] hover:bg-white hover:text-black border border-[#e0e0e4]"
-            }`}
+              }`}
           >
             <FolderGit2 className="w-3.5 h-3.5" />
             Overview
@@ -349,11 +345,10 @@ export default function RepositoryDetailPage() {
           <button
             type="button"
             onClick={() => setActiveTab("commits")}
-            className={`flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${
-              activeTab === "commits"
+            className={`flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${activeTab === "commits"
                 ? "bg-black text-white shadow-xs"
                 : "bg-white/60 text-[#666] hover:bg-white hover:text-black border border-[#e0e0e4]"
-            }`}
+              }`}
           >
             <History className="w-3.5 h-3.5" />
             Commits ({commits.length})
@@ -361,11 +356,10 @@ export default function RepositoryDetailPage() {
           <button
             type="button"
             onClick={() => setActiveTab("pulls")}
-            className={`flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${
-              activeTab === "pulls"
+            className={`flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${activeTab === "pulls"
                 ? "bg-black text-white shadow-xs"
                 : "bg-white/60 text-[#666] hover:bg-white hover:text-black border border-[#e0e0e4]"
-            }`}
+              }`}
           >
             <GitPullRequest className="w-3.5 h-3.5" />
             Pull Requests ({pullRequests.length})
@@ -373,11 +367,10 @@ export default function RepositoryDetailPage() {
           <button
             type="button"
             onClick={() => setActiveTab("branches")}
-            className={`flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${
-              activeTab === "branches"
+            className={`flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${activeTab === "branches"
                 ? "bg-black text-white shadow-xs"
                 : "bg-white/60 text-[#666] hover:bg-white hover:text-black border border-[#e0e0e4]"
-            }`}
+              }`}
           >
             <GitBranch className="w-3.5 h-3.5" />
             Branches ({branches.length})
@@ -385,14 +378,13 @@ export default function RepositoryDetailPage() {
           <button
             type="button"
             onClick={() => setActiveTab("inspect")}
-            className={`flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${
-              activeTab === "inspect"
+            className={`flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${activeTab === "inspect"
                 ? "bg-black text-white shadow-xs"
                 : "bg-white/60 text-[#666] hover:bg-white hover:text-black border border-[#e0e0e4]"
-            }`}
+              }`}
           >
             <Code className="w-3.5 h-3.5 text-amber-400" />
-            📐 Design Inspect
+            Design Inspect
           </button>
         </div>
 
@@ -509,7 +501,7 @@ export default function RepositoryDetailPage() {
                 <div className="flex flex-col divide-y divide-[#f0f0f4]">
                   {pullRequests.length === 0 ? (
                     <div className="py-6 text-center text-[#888] text-[12px]">
-                      No active pull requests for gitdesign/{repoKey}
+                      No active pull requests for oleidian/{repoKey}
                     </div>
                   ) : (
                     pullRequests.slice(0, 3).map((pr) => (
@@ -622,7 +614,7 @@ export default function RepositoryDetailPage() {
               <div className="flex items-center gap-2">
                 <GitPullRequest className="w-5 h-5 text-black" />
                 <h2 className="text-[16px] font-semibold text-black font-sans">
-                  Pull Requests for gitdesign/{repoKey}
+                  Pull Requests for oleidian/{repoKey}
                 </h2>
               </div>
 
@@ -638,7 +630,7 @@ export default function RepositoryDetailPage() {
             <div className="flex flex-col divide-y divide-[#f0f0f4]">
               {pullRequests.length === 0 ? (
                 <div className="py-12 text-center text-[#888] text-[13px]">
-                  No pull requests recorded for gitdesign/{repoKey}.
+                  No pull requests recorded for oleidian/{repoKey}.
                 </div>
               ) : (
                 pullRequests.map((pr) => (
@@ -685,7 +677,7 @@ export default function RepositoryDetailPage() {
               <div className="flex items-center gap-2">
                 <GitBranch className="w-5 h-5 text-black" />
                 <h2 className="text-[16px] font-semibold text-black font-sans">
-                  Branches for gitdesign/{repoKey}
+                  Branches for oleidian/{repoKey}
                 </h2>
               </div>
 
@@ -720,7 +712,7 @@ export default function RepositoryDetailPage() {
             <div className="flex flex-col divide-y divide-[#f0f0f4]">
               {branches.length === 0 ? (
                 <div className="py-12 text-center text-[#888] text-[13px]">
-                  No branches found for gitdesign/{repoKey}.
+                  No branches found for oleidian/{repoKey}.
                 </div>
               ) : (
                 branches.map((b) => {
@@ -733,9 +725,8 @@ export default function RepositoryDetailPage() {
                     >
                       <div className="flex items-center gap-3.5 min-w-0 grow">
                         <div
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                            isMain ? "bg-black" : "bg-[#f0f0f0]"
-                          }`}
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isMain ? "bg-black" : "bg-[#f0f0f0]"
+                            }`}
                         >
                           <GitBranch className={`w-3.5 h-3.5 ${isMain ? "text-white" : "text-[#555]"}`} />
                         </div>
@@ -767,7 +758,7 @@ export default function RepositoryDetailPage() {
 
                       <div className="flex items-center gap-2 shrink-0 ml-4">
                         <Link
-                          href={`/dashboard/pulls/new?sourceBranchId=${encodeURIComponent(b.id)}&fileKey=${encodeURIComponent(repoKey)}`}
+                          href={`/dashboard/pulls/new?fileKey=${encodeURIComponent(repoKey)}&sourceBranchId=${encodeURIComponent(b.id)}&branch=${encodeURIComponent(b.name)}`}
                           className="flex items-center gap-1.5 text-[11px] font-medium text-[#555] hover:text-black border border-[#e2e2e2] rounded-lg px-2.5 py-1.5 hover:border-black transition-colors bg-white shadow-2xs"
                         >
                           <GitPullRequest className="w-3.5 h-3.5" />

@@ -34,7 +34,7 @@ export default function Header({
     <header className="bg-white/70 backdrop-blur-lg border-b border-[#e5e5e5]/40 h-16 flex justify-between items-center px-6 sticky top-0 z-20">
       <div className="flex items-center gap-8 grow max-w-4xl">
         <Link href="/" className="text-[18px] font-bold font-sans tracking-tight text-black select-none">
-          GitDesign
+          Oleidian
         </Link>
 
         {/* Small GitHub-style Search Trigger Button */}

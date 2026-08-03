@@ -75,7 +75,7 @@ export default function DesignRepositoriesGrid({ reposList = [], commits = [], o
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between">
                       <span className="text-[14px] font-semibold text-black group-hover:underline text-left truncate font-sans">
-                        gitdesign/{repo.name}
+                        oleidian/{repo.name}
                       </span>
                       <div className="flex items-center gap-1 text-[11px] font-medium text-[#666666]">
                         <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />

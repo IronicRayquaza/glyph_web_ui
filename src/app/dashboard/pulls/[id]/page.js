@@ -6,6 +6,24 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/layout/Header";
 import DesignInspectPanel from "@/components/dashboard/DesignInspectPanel";
+import {
+  Image as ImageIcon,
+  GripVertical,
+  Loader2,
+  AlertCircle,
+  Plus,
+  MessageSquare,
+  GitCompare,
+  Code,
+  History,
+  GitCommit,
+  ChevronRight,
+  CheckCircle2,
+  GitMerge,
+  HelpCircle,
+  RotateCcw,
+  FolderGit2,
+} from "lucide-react";
 
 const STATUS_CONFIG = {
   open: { bg: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500", label: "Open" },
@@ -67,7 +85,7 @@ function VisualDiffSlider({ beforeUrl, afterUrl }) {
           <img src={beforeUrl} alt="Before" className="w-full h-full object-contain bg-[#f8f8f8]" draggable={false} />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-[#999999] flex-col gap-2">
-            <span className="material-symbols-outlined text-[32px] opacity-40">image</span>
+            <ImageIcon className="w-8 h-8 opacity-40 text-black" />
             <span className="text-[12px] font-medium">No snapshot available for base branch (main)</span>
           </div>
         )}
@@ -87,7 +105,7 @@ function VisualDiffSlider({ beforeUrl, afterUrl }) {
           <img src={afterUrl} alt="After" className="w-full h-full object-contain bg-[#f8f8f8]" draggable={false} />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-[#999999] flex-col gap-2">
-            <span className="material-symbols-outlined text-[32px] opacity-40">image</span>
+            <ImageIcon className="w-8 h-8 opacity-40 text-black" />
             <span className="text-[12px] font-medium">No snapshot available for compare branch</span>
           </div>
         )}
@@ -111,7 +129,7 @@ function VisualDiffSlider({ beforeUrl, afterUrl }) {
         onMouseDown={() => setDragging(true)}
         onTouchStart={() => setDragging(true)}
       >
-        <span className="material-symbols-outlined text-[16px] text-black">drag_handle</span>
+        <GripVertical className="w-4 h-4 text-black" />
       </div>
 
       {/* Percentage indicator */}
@@ -200,9 +218,7 @@ function CommentThread({ comments, prId, user, onNewComment }) {
               className="bg-black text-white font-bold text-[12px] px-4 py-1.5 rounded-lg hover:bg-black/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5 shadow-xs"
             >
               {submitting && (
-                <span className="material-symbols-outlined animate-spin text-[14px]">
-                  progress_activity
-                </span>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
               )}
               Submit Comment
             </button>
@@ -277,7 +293,6 @@ export default function PRDetailPage() {
   }
 
   async function loadAll(id, currentUser) {
-    setLoading(true);
     try {
       // 1. Fetch PR by exact ID or short hex prefix (e.g. e94881)
       let prData = null;
@@ -550,9 +565,7 @@ export default function PRDetailPage() {
         />
         <main className="grow p-6 md:p-8 w-full max-w-[1600px] mx-auto flex flex-col items-center justify-center min-h-125">
           <div className="flex flex-col items-center gap-3">
-            <span className="material-symbols-outlined animate-spin text-[32px] text-black">
-              progress_activity
-            </span>
+            <Loader2 className="w-8 h-8 animate-spin text-black" />
             <p className="text-[13px] text-[#666666] font-medium">Loading Pull Request Details...</p>
           </div>
         </main>
@@ -574,7 +587,7 @@ export default function PRDetailPage() {
           onSignOut={handleSignOut}
         />
         <main className="grow p-8 max-w-[1600px] w-full mx-auto flex flex-col items-center justify-center gap-4 text-center">
-          <span className="material-symbols-outlined text-[48px] text-[#888888]">error_outline</span>
+          <AlertCircle className="w-12 h-12 text-[#888888]" />
           <h1 className="text-[20px] font-bold text-black">Pull Request Not Found</h1>
           <p className="text-[13px] text-[#666666]">The pull request with ID #{rawId.slice(0, 8)} does not exist or was deleted.</p>
           <Link href="/dashboard/pulls" className="mt-2 bg-black text-white font-bold text-[12px] px-4 py-2 rounded-lg">
@@ -657,7 +670,7 @@ export default function PRDetailPage() {
               href="/dashboard/pulls/new"
               className="bg-black text-white hover:bg-black/90 font-bold text-[12px] px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs shrink-0 self-start md:self-auto cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[16px]">add</span>
+              <Plus className="w-4 h-4" />
               New PR
             </Link>
           </div>
@@ -666,12 +679,13 @@ export default function PRDetailPage() {
         {/* Navigation Tabs Bar */}
         <div className="border-b border-[#e5e5e5]/60 flex items-center gap-2">
           {[
-            { id: "conversation", label: "Conversation", count: comments.length, icon: "forum" },
-            { id: "diff", label: "Visual Diff Comparison", icon: "compare" },
-            { id: "inspect", label: "Developer Inspect Mode", icon: "code" },
-            { id: "files", label: "Commits & Node History", count: commits.length, icon: "history" },
+            { id: "conversation", label: "Conversation", count: comments.length, Icon: MessageSquare },
+            { id: "diff", label: "Visual Diff Comparison", Icon: GitCompare },
+            { id: "inspect", label: "Developer Inspect Mode", Icon: Code },
+            { id: "files", label: "Commits & Node History", count: commits.length, Icon: History },
           ].map((tab) => {
             const isSelected = activeTab === tab.id;
+            const TabIcon = tab.Icon;
             return (
               <button
                 key={tab.id}
@@ -683,7 +697,7 @@ export default function PRDetailPage() {
                     : "border-transparent text-[#666666] hover:text-black hover:border-[#c5c5c5]"
                 }`}
               >
-                <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+                <TabIcon className="w-4.5 h-4.5" />
                 <span>{tab.label}</span>
                 {tab.count !== undefined && (
                   <span
@@ -737,13 +751,13 @@ export default function PRDetailPage() {
               <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/60 rounded-xl p-6 shadow-xs flex flex-col gap-5">
                 <div className="flex items-center justify-between border-b border-[#f0f0f2] pb-3">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[20px] text-black">compare</span>
+                    <GitCompare className="w-5 h-5 text-black" />
                     <h2 className="text-[16px] font-bold text-black font-sans tracking-tight">
                       Figma Visual Diff Comparison
                     </h2>
                   </div>
                   <div className="text-[11px] font-mono text-black bg-[#f0f0f2] px-2.5 py-1 rounded border border-[#e0e0e0]">
-                    gitdesign/{pr.file_key}
+                    oleidian/{pr.file_key}
                   </div>
                 </div>
 
@@ -753,7 +767,7 @@ export default function PRDetailPage() {
                 <div className="flex items-center justify-between text-[11px] text-[#666666] pt-2 border-t border-[#f0f0f2]">
                   <span>Drag the center divider handle to compare Figma design snapshots.</span>
                   <span className="font-bold text-black">
-                    Target File: gitdesign/{pr.file_key}
+                    Target File: oleidian/{pr.file_key}
                   </span>
                 </div>
               </div>
@@ -764,7 +778,7 @@ export default function PRDetailPage() {
               <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-xs flex flex-col gap-4">
                 <div className="flex items-center justify-between border-b border-[#f0f0f2] pb-3">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[20px] text-black">history</span>
+                    <History className="w-5 h-5 text-black" />
                     <h2 className="text-[16px] font-bold text-black font-sans tracking-tight">
                       Recent Commits in Branch ({commits.length})
                     </h2>
@@ -779,9 +793,7 @@ export default function PRDetailPage() {
                       className="py-3.5 flex items-center justify-between hover:bg-white px-3 rounded-lg transition-colors cursor-pointer group"
                     >
                       <div className="flex items-start gap-3 min-w-0 grow">
-                        <span className="material-symbols-outlined text-[20px] text-black mt-0.5">
-                          commit
-                        </span>
+                        <GitCommit className="w-5 h-5 text-black mt-0.5" />
                         <div className="flex flex-col gap-1 min-w-0">
                           <p className="text-[13px] font-bold text-black group-hover:underline truncate">
                             {c.message}
@@ -797,9 +809,7 @@ export default function PRDetailPage() {
                         </div>
                       </div>
 
-                      <span className="material-symbols-outlined text-[18px] text-[#999999] group-hover:text-black">
-                        chevron_right
-                      </span>
+                      <ChevronRight className="w-4.5 h-4.5 text-[#999999] group-hover:text-black" />
                     </div>
                   ))}
                 </div>
@@ -812,7 +822,7 @@ export default function PRDetailPage() {
                 <div className="flex items-center justify-between bg-white/70 backdrop-blur-lg p-4 rounded-xl border border-[#e5e5e5]/50 shadow-xs">
                   <div>
                     <h3 className="text-[14px] font-bold text-black flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[18px]">code</span>
+                      <Code className="w-4.5 h-4.5 text-black" />
                       Developer Spec Handoff Mode
                     </h3>
                     <p className="text-[11px] text-[#666] mt-0.5">
@@ -838,9 +848,11 @@ export default function PRDetailPage() {
                   <div className={`p-3.5 rounded-lg border flex items-center gap-2.5 ${
                     canMerge ? "bg-emerald-50 border-emerald-200" : "bg-[#f8f8fa] border-[#e0e0e4]"
                   }`}>
-                    <span className={`material-symbols-outlined text-[20px] ${canMerge ? "text-emerald-600" : "text-[#888888]"}`}>
-                      {canMerge ? "check_circle" : "pending"}
-                    </span>
+                    {canMerge ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    ) : (
+                      <HelpCircle className="w-5 h-5 text-[#888888] shrink-0" />
+                    )}
                     <div className="flex flex-col">
                       <span className={`text-[12px] font-bold ${canMerge ? "text-emerald-800" : "text-black"}`}>
                         {canMerge ? "Ready to Merge" : "Awaiting Review Approval"}
@@ -860,18 +872,16 @@ export default function PRDetailPage() {
                     className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-[13px] py-2.5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                   >
                     {merging ? (
-                      <span className="material-symbols-outlined animate-spin text-[16px]">
-                        progress_activity
-                      </span>
+                      <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <span className="material-symbols-outlined text-[16px]">call_merge</span>
+                      <GitMerge className="w-4 h-4" />
                     )}
                     {merging ? "Merging Changes..." : "Merge Pull Request"}
                   </button>
                 </div>
               ) : (
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[24px] text-purple-700">call_merge</span>
+                  <GitMerge className="w-6 h-6 text-purple-700 shrink-0" />
                   <div className="flex flex-col">
                     <span className="text-[13px] font-bold text-purple-900">Pull Request Merged</span>
                     <span className="text-[11px] text-purple-700 mt-0.5">
@@ -899,28 +909,31 @@ export default function PRDetailPage() {
 
                 <div className="flex flex-col gap-2 select-none">
                   {[
-                    { value: "comment", icon: "chat_bubble", label: "Comment", desc: "General feedback" },
-                    { value: "approve", icon: "check_circle", label: "Approve", desc: "Ready to merge" },
-                    { value: "request_changes", icon: "change_circle", label: "Request Changes", desc: "Must be addressed" },
-                  ].map((opt) => (
-                    <label key={opt.value} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-[#f5f5f7] cursor-pointer transition-colors">
-                      <input
-                        type="radio"
-                        name="review-action-group"
-                        value={opt.value}
-                        checked={reviewAction === opt.value}
-                        onChange={() => setReviewAction(opt.value)}
-                        className="mt-0.5 accent-black cursor-pointer"
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-[12px] font-bold text-black flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[14px]">{opt.icon}</span>
-                          {opt.label}
-                        </span>
-                        <span className="text-[10px] text-[#777777]">{opt.desc}</span>
-                      </div>
-                    </label>
-                  ))}
+                    { value: "comment", Icon: MessageSquare, label: "Comment", desc: "General feedback" },
+                    { value: "approve", Icon: CheckCircle2, label: "Approve", desc: "Ready to merge" },
+                    { value: "request_changes", Icon: RotateCcw, label: "Request Changes", desc: "Must be addressed" },
+                  ].map((opt) => {
+                    const OptIcon = opt.Icon;
+                    return (
+                      <label key={opt.value} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-[#f5f5f7] cursor-pointer transition-colors">
+                        <input
+                          type="radio"
+                          name="review-action-group"
+                          value={opt.value}
+                          checked={reviewAction === opt.value}
+                          onChange={() => setReviewAction(opt.value)}
+                          className="mt-0.5 accent-black cursor-pointer"
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-bold text-black flex items-center gap-1">
+                            <OptIcon className="w-3.5 h-3.5 text-black" />
+                            {opt.label}
+                          </span>
+                          <span className="text-[10px] text-[#777777]">{opt.desc}</span>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
 
                 <button
@@ -929,9 +942,7 @@ export default function PRDetailPage() {
                   className="w-full bg-black hover:bg-black/90 text-white font-bold text-[12px] py-2.5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
                 >
                   {reviewSubmitting && (
-                    <span className="material-symbols-outlined animate-spin text-[14px]">
-                      progress_activity
-                    </span>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   )}
                   Submit Review
                 </button>
@@ -944,9 +955,9 @@ export default function PRDetailPage() {
                 Target Design File
               </span>
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px] text-black">folder_open</span>
+                <FolderGit2 className="w-4.5 h-4.5 text-black" />
                 <span className="text-[13px] font-bold text-black font-mono">
-                  gitdesign/{pr.file_key}
+                  oleidian/{pr.file_key}
                 </span>
               </div>
             </div>

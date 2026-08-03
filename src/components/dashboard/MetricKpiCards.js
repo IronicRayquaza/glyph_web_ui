@@ -3,18 +3,18 @@
 import { FolderGit2, GitPullRequest, History, Users } from "lucide-react";
 
 export default function MetricKpiCards({ commits = [], reposList = [], openPullsCount = 0 }) {
-  const uniqueContributorsCount = [...new Set(commits.map((c) => c.author))].filter(Boolean).length || 1;
+  const uniqueContributorsCount = [...new Set(commits.map((c) => c.author))].filter(Boolean).length;
   const totalSnapshotsCount = commits.filter(c => c.snapshot_url).length;
 
   const metrics = [
     {
       title: "Design Repositories",
-      value: reposList.length || 1,
+      value: reposList.length,
       unit: reposList.length === 1 ? "File Library" : "File Libraries",
-      subtext: "Figma design systems & UI kits",
+      subtext: reposList.length > 0 ? "Figma design systems & UI kits" : "No repositories created",
       Icon: FolderGit2,
-      badge: "Active",
-      badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      badge: reposList.length > 0 ? "Active" : "Empty",
+      badgeColor: reposList.length > 0 ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200",
     },
     {
       title: "Open Pull Requests",
@@ -28,20 +28,20 @@ export default function MetricKpiCards({ commits = [], reposList = [], openPulls
     {
       title: "Visual Commits",
       value: commits.length,
-      unit: "Total Snapshots",
+      unit: commits.length === 1 ? "Commit" : "Total Commits",
       subtext: `${totalSnapshotsCount} snapshot previews captured`,
       Icon: History,
-      badge: "Synced",
-      badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
+      badge: commits.length > 0 ? "Synced" : "No Commits",
+      badgeColor: commits.length > 0 ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-slate-100 text-slate-600 border-slate-200",
     },
     {
       title: "Active Contributors",
       value: uniqueContributorsCount,
-      unit: uniqueContributorsCount === 1 ? "Design Lead" : "Designers",
-      subtext: "Pushing design iterations",
+      unit: uniqueContributorsCount === 1 ? "Designer" : "Designers",
+      subtext: uniqueContributorsCount > 0 ? "Pushing design iterations" : "No contributors active",
       Icon: Users,
-      badge: "Team",
-      badgeColor: "bg-slate-100 text-slate-700 border-slate-200",
+      badge: uniqueContributorsCount > 0 ? "Team" : "Empty",
+      badgeColor: uniqueContributorsCount > 0 ? "bg-slate-100 text-slate-700 border-slate-200" : "bg-slate-50 text-slate-500 border-slate-200",
     },
   ];
 

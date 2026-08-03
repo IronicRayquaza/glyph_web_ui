@@ -76,7 +76,7 @@ export default function CommandPalette({
                       {c.id.slice(0, 7)}
                     </span>
                     <span>in</span>
-                    <span className="font-bold text-black">gitdesign/{c.file_key}</span>
+                    <span className="font-bold text-black">oleidian/{c.file_key}</span>
                   </div>
                 </div>
                 <span className="text-[11px] text-[#888888] font-mono pr-2">{timeAgo(c.timestamp)}</span>

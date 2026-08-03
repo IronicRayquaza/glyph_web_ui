@@ -1,15 +1,15 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "GitDesign — Git for Figma. Version Control for Designers.",
-  description: "GitDesign brings repos, commits, branches, and pull requests to Figma. Track every design change, review with structured pull requests, and never lose a version again. Free Figma plugin.",
+  title: "Oleidian - Git for Figma. Version Control for Designers.",
+  description: "Oleidian brings repos, commits, branches, and pull requests to Figma. Track every design change, review with structured pull requests, and never lose a version again. Free Figma plugin.",
   icons: {
     icon: "/favicon.png?v=2",
     shortcut: "/favicon.png?v=2",
     apple: "/favicon.png?v=2",
   },
   openGraph: {
-    title: "GitDesign — Git for Figma. Version Control for Designers.",
+    title: "Oleidian - Git for Figma. Version Control for Designers.",
     description: "Track every design change, review with pull requests, and never lose a version again. Free Figma plugin.",
     type: "website",
   },

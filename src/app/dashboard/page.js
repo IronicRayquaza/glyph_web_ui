@@ -1,7 +1,7 @@
 import DashboardClient from "@/components/dashboard/DashboardClient";
 
 export const metadata = {
-  title: "Dashboard - GitDesign",
+  title: "Dashboard - Oleidian",
   description: "Track design system commits, contribution heatmaps, and repository activity.",
 };
 

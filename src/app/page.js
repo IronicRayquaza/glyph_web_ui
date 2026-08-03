@@ -72,7 +72,7 @@ export default function LandingPage() {
       num: "01",
       title: "Repositories",
       headline: "Every file, finally organized.",
-      desc: "Turn any Figma file into a design repository. Track components, frames, and full libraries in one place — searchable, starred, and never lost in duplicated files again.",
+      desc: "Turn any Figma file into a design repository. Track components, frames, and full libraries in one place - searchable, starred, and never lost in duplicated files again.",
       bullets: [
         "One repo per file, component library, or design system",
         "Star the ones you use most for quick access",
@@ -92,7 +92,7 @@ export default function LandingPage() {
       num: "02",
       title: "Visual Commits",
       headline: "See exactly what changed. Not just that something did.",
-      desc: "Every push captures a snapshot. Open any commit to see a real visual diff — old frame vs new frame, with exact property-level changes called out.",
+      desc: "Every push captures a snapshot. Open any commit to see a real visual diff - old frame vs new frame, with exact property-level changes called out.",
       bullets: [
         "Side-by-side slider and overlay diff views",
         "Property-level change logs (color, spacing, type, position)",
@@ -116,7 +116,7 @@ export default function LandingPage() {
       desc: "Want to try a wild redesign without touching the approved version? Branch it. Work in your own space, compare against main whenever you want, and merge when ready.",
       bullets: [
         "Unlimited branches per repository",
-        "Visual branch graph — see design history at a glance",
+        "Visual branch graph - see design history at a glance",
         "Merge conflicts shown side-by-side, resolved in a click",
       ],
       preview: {
@@ -173,7 +173,7 @@ export default function LandingPage() {
               <FolderGit2 className="w-4 h-4 text-white" />
             </div>
             <span className="font-bold text-[16px] tracking-tight font-sans text-slate-950">
-              GitDesign
+              Oleidian
             </span>
           </Link>
 
@@ -226,7 +226,7 @@ export default function LandingPage() {
       </header>
 
       {/* ── MAIN CONTENT CONTAINER WITH DASHED BOUNDARY BORDERS ── */}
-      <main className="max-w-310 mx-auto w-full border-x border-dashed border-slate-300/80 bg-white/40 backdrop-blur-2xs relative my-6">
+      <main className="max-w-[1240px] mx-auto w-full border-x border-dashed border-slate-300/80 bg-white/40 backdrop-blur-2xs relative my-6">
 
         {/* ── 2. HERO SECTION ── */}
         <section className="relative border-b border-dashed border-slate-300/80 py-16 md:py-24 px-6 md:px-12 flex flex-col items-center text-center">
@@ -248,10 +248,10 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-[38px] sm:text-[56px] md:text-[68px] font-bold text-slate-950 tracking-tight leading-[1.05] max-w-240 mb-6 font-sans"
+            className="text-[38px] sm:text-[56px] md:text-[68px] font-bold text-slate-950 tracking-tight leading-[1.05] max-w-[960px] mb-6 font-sans"
           >
             Version control{" "}
-            <span className="inline-flex items-center px-4 py-1 rounded-2xl bg-linear-to-r from-slate-950 via-slate-900 to-black text-white border border-slate-950 font-mono text-[32px] sm:text-[46px] md:text-[54px] align-middle shadow-md hover:scale-105 transition-transform cursor-default">
+            <span className="inline-flex items-center px-4 py-1 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-black text-white border border-slate-950 font-mono text-[32px] sm:text-[46px] md:text-[54px] align-middle shadow-md hover:scale-105 transition-transform cursor-default">
               {"{Git}"}
             </span>{" "}
             for Figma &amp; design teams.
@@ -263,7 +263,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-[17px] sm:text-[20px] text-slate-600 max-w-190 leading-relaxed mb-9 font-normal"
           >
-            GitDesign brings repos, commits, branches, and pull requests directly to your Figma files — so{" "}
+            Oleidian brings repos, commits, branches, and pull requests directly to your Figma files - so{" "}
             <code className="bg-slate-200/80 text-slate-900 font-mono px-2 py-0.5 rounded-md text-[14px] font-semibold border border-slate-300/80">
               &quot;final_v2_ACTUALLY_final.fig&quot;
             </code>{" "}
@@ -307,7 +307,7 @@ export default function LandingPage() {
                 <div className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]" />
                 <div className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29]" />
                 <span className="text-[12px] font-mono text-slate-500 font-bold ml-2">
-                  gitdesign / mobile-app-ui
+                  oleidian / mobile-app-ui
                 </span>
               </div>
 
@@ -399,7 +399,7 @@ export default function LandingPage() {
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <span className="text-[13px] font-bold text-slate-900 flex items-center gap-2">
                     <SplitSquareHorizontal className="w-4 h-4 text-black" />
-                    Visual Diff Comparison — Branch:{" "}
+                    Visual Diff Comparison - Branch:{" "}
                     <code className="text-slate-950 font-bold font-mono">{heroBranch}</code>
                   </span>
                   <span className="text-[11px] font-mono text-slate-500">
@@ -483,7 +483,7 @@ export default function LandingPage() {
                 &quot;Wait, who changed the button color?&quot;
               </h3>
               <p className="text-[14px] text-slate-600 leading-relaxed">
-                Someone edits a shared frame. Nobody knows what changed, when, or why — until it ships wrong in production.
+                Someone edits a shared frame. Nobody knows what changed, when, or why - until it ships wrong in production.
               </p>
             </motion.div>
 
@@ -505,7 +505,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── 5. SOLUTION INTRO ("Meet GitDesign") ── */}
+        {/* ── 5. SOLUTION INTRO ("Meet Oleidian") ── */}
         <section className="relative border-b border-dashed border-slate-300/80 py-20 md:py-24 px-6 md:px-12 bg-white">
           <CornerPins />
           <div className="max-w-230 mx-auto text-center flex flex-col items-center gap-6">
@@ -513,10 +513,10 @@ export default function LandingPage() {
               <FolderGit2 className="w-6 h-6 text-white" />
             </div>
             <h2 className="text-[34px] sm:text-[44px] font-bold text-slate-950 tracking-tight font-sans">
-              Meet GitDesign.
+              Meet Oleidian.
             </h2>
             <p className="text-[18px] sm:text-[20px] text-slate-700 leading-relaxed font-normal">
-              GitDesign is what developers have had for years, rebuilt for the way designers actually work. Every Figma file becomes a repository. Every save can be a commit. Every risky idea gets its own branch. Every approval happens through a real pull request — with the actual design attached, not a screenshot of it.
+              Oleidian is what developers have had for years, rebuilt for the way designers actually work. Every Figma file becomes a repository. Every save can be a commit. Every risky idea gets its own branch. Every approval happens through a real pull request - with the actual design attached, not a screenshot of it.
             </p>
             <div className="pt-3">
               <span className="text-[14px] font-bold text-slate-900 bg-slate-100 border border-slate-200 px-5 py-2.5 rounded-full shadow-2xs">
@@ -584,7 +584,7 @@ export default function LandingPage() {
                   Live {featureTabs[activeFeatureTab].title} Preview
                 </span>
                 <span className="text-[10px] bg-white border border-slate-200 text-slate-600 px-2 py-0.5 rounded font-mono font-bold">
-                  GitDesign Studio
+                  Oleidian Studio
                 </span>
               </div>
 
@@ -680,7 +680,7 @@ export default function LandingPage() {
               </span>
               <h3 className="font-bold text-[18px] text-slate-950 font-sans">Install the plugin</h3>
               <p className="text-[14px] text-slate-600 leading-relaxed">
-                Add GitDesign to Figma in one click. No account setup gymnastics.
+                Add Oleidian to Figma in one click. No account setup gymnastics.
               </p>
             </div>
 
@@ -720,7 +720,7 @@ export default function LandingPage() {
                 Lives right inside Figma. Because that’s where design actually happens.
               </h2>
               <p className="text-[16px] text-slate-300 leading-relaxed">
-                GitDesign isn’t a separate tool you have to remember to update. Push and pull straight from the Figma plugin panel — your repo stays in sync with your canvas, automatically.
+                Oleidian isn’t a separate tool you have to remember to update. Push and pull straight from the Figma plugin panel - your repo stays in sync with your canvas, automatically.
               </p>
               <div className="pt-2">
                 <a
@@ -728,7 +728,7 @@ export default function LandingPage() {
                   className="inline-flex items-center gap-2.5 bg-white text-black hover:bg-slate-200 font-bold text-[14px] px-7 py-3.5 rounded-full transition-all shadow-md cursor-pointer active:scale-95"
                 >
                   <Sparkles className="w-4 h-4 text-black" />
-                  <span>Get the Plugin — it&apos;s free</span>
+                  <span>Get the Plugin - it&apos;s free</span>
                 </a>
               </div>
             </div>
@@ -736,7 +736,7 @@ export default function LandingPage() {
             <div className="z-10 bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-90 flex flex-col gap-4 shadow-2xl relative">
               <CornerPins />
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <span className="font-bold text-[13px] text-white">GitDesign Plugin Panel</span>
+                <span className="font-bold text-[13px] text-white">Oleidian Plugin Panel</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               </div>
               <div className="flex flex-col gap-2.5">
@@ -766,7 +766,7 @@ export default function LandingPage() {
               This isn’t Figma’s version history.
             </h2>
             <p className="text-[16px] text-slate-600 max-w-150 mx-auto">
-              See how GitDesign compares to native file history:
+              See how Oleidian compares to native file history:
             </p>
           </div>
 
@@ -776,7 +776,7 @@ export default function LandingPage() {
                 <tr className="border-b border-dashed border-slate-300 bg-slate-50">
                   <th className="py-4.5 px-6 text-[13px] font-bold text-slate-500 uppercase tracking-wider">Feature</th>
                   <th className="py-4.5 px-6 text-[13px] font-bold text-slate-500 uppercase tracking-wider">Figma Version History</th>
-                  <th className="py-4.5 px-6 text-[13px] font-bold text-black uppercase tracking-wider bg-emerald-50/60">GitDesign</th>
+                  <th className="py-4.5 px-6 text-[13px] font-bold text-black uppercase tracking-wider bg-emerald-50/60">Oleidian</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-[14px]">
@@ -817,7 +817,7 @@ export default function LandingPage() {
             <p className="text-[22px] sm:text-[28px] font-bold text-slate-950 leading-snug tracking-tight font-sans italic">
               &quot;I stopped naming files &apos;final_v3&apos; the day I installed this.&quot;
             </p>
-            <span className="text-[14px] text-slate-600 font-medium">— Early GitDesign User</span>
+            <span className="text-[14px] text-slate-600 font-medium">- Early Oleidian User</span>
           </div>
         </section>
 
@@ -841,15 +841,15 @@ export default function LandingPage() {
               },
               {
                 q: "Does this replace Figma's version history?",
-                a: "It builds on top of it. You get structure — repos, branches, pull requests — instead of one long unlabeled timeline.",
+                a: "It builds on top of it. You get structure - repos, branches, pull requests - instead of one long unlabeled timeline.",
               },
               {
                 q: "Will this slow down my Figma file?",
-                a: "No. GitDesign syncs in the background through the plugin; it doesn't touch how your file performs.",
+                a: "No. Oleidian syncs in the background through the plugin; it doesn't touch how your file performs.",
               },
               {
                 q: "Can my whole team use it, or just me?",
-                a: "Built for teams. Branches, pull requests, and reviewer comments only make sense with more than one person in the loop — though it works great solo too.",
+                a: "Built for teams. Branches, pull requests, and reviewer comments only make sense with more than one person in the loop - though it works great solo too.",
               },
               {
                 q: "Is it free?",
@@ -940,7 +940,7 @@ export default function LandingPage() {
                   <FolderGit2 className="w-4 h-4 text-white" />
                 </div>
                 <span className="font-bold text-[18px] tracking-tight font-sans text-slate-950">
-                  GitDesign
+                  Oleidian
                 </span>
               </Link>
               <p className="text-[13px] text-slate-500 leading-relaxed font-normal">
@@ -999,7 +999,7 @@ export default function LandingPage() {
 
           {/* Copyright & Social Strip */}
           <div className="border-t border-slate-200/90 pt-6 flex flex-col sm:flex-row justify-between items-center text-[12px] text-slate-500 gap-4">
-            <span>&copy; {new Date().getFullYear()} GitDesign. Built for designers.</span>
+            <span>&copy; {new Date().getFullYear()} Oleidian. Built for designers.</span>
             <div className="flex items-center gap-6 font-medium">
               <a href="https://figma.com" target="_blank" rel="noreferrer" className="hover:text-black transition-colors">
                 Figma Community

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { BsGithub } from "react-icons/bs";
 import { FcGoogle } from "react-icons/fc";
+import { Loader2 } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -189,14 +190,14 @@ export default function LoginPage() {
 
       {/* Content Layout Column */}
       <div className="relative z-10 flex flex-col items-center w-full max-w-120">
-        {/* GitDesign Branding Header */}
+        {/* Oleidian Branding Header */}
         <div className="flex flex-col items-center gap-base mb-lg text-center select-none">
           <div className="flex items-center gap-xs text-headline-xl font-headline-xl font-bold tracking-tight text-black">
             {/* Logo SVG matching reference style */}
             <svg className="w-8 h-8 inline-block text-black" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h5m8 0h5M12 8a4 4 0 110 8 4 4 0 010-8z" />
             </svg>
-            <span className="font-sans">GitDesign</span>
+            <span className="font-sans">Oleidian</span>
           </div>
           <p className="text-[12px] text-[#555555] tracking-wide uppercase font-medium">
             Design Systems Version Control
@@ -205,7 +206,7 @@ export default function LoginPage() {
 
         <Suspense fallback={
           <div className="w-full bg-white/80 backdrop-blur-lg border border-[#e5e5e5] rounded p-8 flex flex-col items-center justify-center min-h-85">
-            <span className="material-symbols-outlined animate-spin text-2xl text-black">progress_activity</span>
+            <Loader2 className="w-6 h-6 animate-spin text-black" />
             <p className="text-secondary text-body-sm mt-sm">Loading login credentials...</p>
           </div>
         }>
@@ -214,7 +215,7 @@ export default function LoginPage() {
 
         {/* Footer disclaimer links */}
         <p className="mt-6 text-[11px] text-[#666666] text-center w-full max-w-85 leading-normal">
-          By continuing, you agree to GitDesign&apos;s{" "}
+          By continuing, you agree to Oleidian&apos;s{" "}
           <a href="#" className="underline text-black font-semibold hover:opacity-85">Terms of Service</a> and{" "}
           <a href="#" className="underline text-black font-semibold hover:opacity-85">Privacy Policy</a>.
         </p>

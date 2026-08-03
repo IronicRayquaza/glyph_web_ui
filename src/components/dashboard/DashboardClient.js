@@ -226,7 +226,7 @@ export default function DashboardClient() {
         <main className="grow p-6 md:p-8 w-full max-w-[1600px] mx-auto flex flex-col items-center justify-center min-h-125">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-black" />
-            <p className="text-[13px] text-[#666666] font-medium">Loading GitDesign Workspace...</p>
+            <p className="text-[13px] text-[#666666] font-medium">Loading Oleidian Workspace...</p>
           </div>
         </main>
       </div>

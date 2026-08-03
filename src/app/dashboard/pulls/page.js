@@ -4,6 +4,16 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import {
+  Plus,
+  GitPullRequest,
+  CheckCircle2,
+  XCircle,
+  Search,
+  Loader2,
+  MessageSquare,
+  Eye,
+} from "lucide-react";
 
 const STATUS_COLORS = {
   open: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", dot: "bg-emerald-500", label: "Open" },
@@ -24,20 +34,18 @@ function timeAgo(dateString) {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
-  if (days === 1) return "yesterday";
   return `${days}d ago`;
 }
 
 export default function PullRequestsPage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
   const [pulls, setPulls] = useState([]);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("open");
   const [searchQuery, setSearchQuery] = useState("");
 
   async function fetchPulls() {
-    setLoading(true);
     try {
       const { data, error } = await supabase
         .from("dvc_pull_requests")
@@ -55,39 +63,50 @@ export default function PullRequestsPage() {
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/login"); return; }
-      setUser(user);
+      const { data: { user: u } } = await supabase.auth.getUser();
+      if (!u) {
+        router.push("/login");
+        return;
+      }
+      setUser(u);
       await fetchPulls();
     }
     init();
   }, [router]);
 
-  const filtered = pulls.filter((pr) => {
-    const matchesFilter = activeFilter === "all" || pr.status === activeFilter ||
-      (activeFilter === "open" && ["open", "approved", "changes_requested"].includes(pr.status));
-    const matchesSearch = !searchQuery ||
-      pr.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      pr.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      pr.file_key?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
-
   const counts = {
-    open: pulls.filter(p => ["open", "approved", "changes_requested"].includes(p.status)).length,
-    merged: pulls.filter(p => p.status === "merged").length,
-    closed: pulls.filter(p => p.status === "closed").length,
+    open: pulls.filter((p) => p.status === "open" || p.status === "approved" || p.status === "changes_requested").length,
+    merged: pulls.filter((p) => p.status === "merged").length,
+    closed: pulls.filter((p) => p.status === "closed").length,
   };
 
+  const filtered = pulls.filter((p) => {
+    const isMatchingStatus =
+      activeFilter === "open"
+        ? p.status === "open" || p.status === "approved" || p.status === "changes_requested"
+        : p.status === activeFilter;
+
+    if (!isMatchingStatus) return false;
+    if (!searchQuery.trim()) return true;
+
+    const q = searchQuery.toLowerCase();
+    return (
+      p.title?.toLowerCase().includes(q) ||
+      p.author?.toLowerCase().includes(q) ||
+      p.file_key?.toLowerCase().includes(q) ||
+      p.source_branch?.toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <div className="grow flex flex-col min-w-0">
-      {/* Header */}
-      <header className="bg-white/70 backdrop-blur-lg border-b border-[#e5e5e5]/40 h-16 flex justify-between items-center px-8 sticky top-0 z-20">
+    <div className="min-h-screen bg-[#f8fafc] text-black font-sans flex flex-col">
+      {/* Top Bar */}
+      <header className="h-14 border-b border-[#e5e5e5]/60 bg-white/70 backdrop-blur-lg px-6 flex items-center justify-between shrink-0 sticky top-0 z-30">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="text-[18px] font-bold tracking-tight text-black select-none hover:opacity-70 transition-opacity">
-            GitDesign
+          <Link href="/dashboard" className="text-[13px] font-bold text-[#666666] hover:text-black transition-colors">
+            Dashboard
           </Link>
-          <span className="text-[#c5c5c5]">/</span>
+          <span className="text-[#bbb] text-[13px]">/</span>
           <span className="text-[14px] font-semibold text-black">Pull Requests</span>
         </div>
         <div className="flex items-center gap-3">
@@ -95,7 +114,7 @@ export default function PullRequestsPage() {
             href="/dashboard/pulls/new"
             className="bg-black text-white hover:bg-black/80 font-semibold text-[12px] px-4 py-1.75 rounded flex items-center gap-2 transition-colors"
           >
-            <span className="material-symbols-outlined text-[15px]">add</span>
+            <Plus className="w-4 h-4" />
             New Pull Request
           </Link>
           <button
@@ -123,33 +142,36 @@ export default function PullRequestsPage() {
             {/* Status Tabs */}
             <div className="flex items-center gap-1">
               {[
-                { key: "open", label: "Open", icon: "merge_type", count: counts.open },
-                { key: "merged", label: "Merged", icon: "check_circle", count: counts.merged },
-                { key: "closed", label: "Closed", icon: "cancel", count: counts.closed },
-              ].map((f) => (
-                <button
-                  key={f.key}
-                  onClick={() => setActiveFilter(f.key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-semibold transition-colors cursor-pointer ${
-                    activeFilter === f.key
-                      ? "bg-black text-white"
-                      : "text-[#555555] hover:bg-white/60 hover:text-black"
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[14px]">{f.icon}</span>
-                  {f.label}
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                    activeFilter === f.key ? "bg-white/20 text-white" : "bg-[#f0f0f0] text-[#555555]"
-                  }`}>
-                    {f.count}
-                  </span>
-                </button>
-              ))}
+                { key: "open", label: "Open", Icon: GitPullRequest, count: counts.open },
+                { key: "merged", label: "Merged", Icon: CheckCircle2, count: counts.merged },
+                { key: "closed", label: "Closed", Icon: XCircle, count: counts.closed },
+              ].map((f) => {
+                const TabIcon = f.Icon;
+                return (
+                  <button
+                    key={f.key}
+                    onClick={() => setActiveFilter(f.key)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-semibold transition-colors cursor-pointer ${
+                      activeFilter === f.key
+                        ? "bg-black text-white"
+                        : "text-[#555555] hover:bg-white/60 hover:text-black"
+                    }`}
+                  >
+                    <TabIcon className="w-3.5 h-3.5" />
+                    {f.label}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                      activeFilter === f.key ? "bg-white/20 text-white" : "bg-[#f0f0f0] text-[#555555]"
+                    }`}>
+                      {f.count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Search */}
             <div className="relative flex items-center">
-              <span className="material-symbols-outlined text-[16px] text-[#999] absolute left-3 pointer-events-none">search</span>
+              <Search className="w-4 h-4 text-[#999] absolute left-3 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
@@ -163,12 +185,12 @@ export default function PullRequestsPage() {
           {/* PR List */}
           {loading ? (
             <div className="py-16 flex flex-col items-center gap-3 text-[#888]">
-              <span className="material-symbols-outlined animate-spin text-[28px]">progress_activity</span>
+              <Loader2 className="w-7 h-7 animate-spin text-black" />
               <span className="text-[13px]">Loading pull requests…</span>
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-16 flex flex-col items-center gap-3 text-[#888]">
-              <span className="material-symbols-outlined text-[40px] opacity-30">merge_type</span>
+              <GitPullRequest className="w-10 h-10 opacity-30 text-black" />
               <div className="text-center">
                 <p className="text-[14px] font-semibold text-black">No pull requests found</p>
                 <p className="text-[12px] text-[#888] mt-1">
@@ -227,13 +249,13 @@ export default function PullRequestsPage() {
                     <div className="flex items-center gap-3 text-[11px] text-[#888] shrink-0 mt-1">
                       {reviewCount > 0 && (
                         <span className="flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[14px]">rate_review</span>
+                          <Eye className="w-3.5 h-3.5" />
                           {reviewCount}
                         </span>
                       )}
                       {commentCount > 0 && (
                         <span className="flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[14px]">chat_bubble</span>
+                          <MessageSquare className="w-3.5 h-3.5" />
                           {commentCount}
                         </span>
                       )}

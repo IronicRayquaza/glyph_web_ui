@@ -5,6 +5,21 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/layout/Header";
+import {
+  GitFork,
+  GitMerge,
+  GitPullRequest,
+  CheckCircle2,
+  FolderGit2,
+  FileEdit,
+  AlertCircle,
+  ArrowLeft,
+  UserPlus,
+  X,
+  Lightbulb,
+  Check,
+  Loader2,
+} from "lucide-react";
 
 function NewPullRequestContent() {
   const router = useRouter();
@@ -36,7 +51,7 @@ function NewPullRequestContent() {
   const [sourceBranchId, setSourceBranchId] = useState("");
   const [targetBranchId, setTargetBranchId] = useState("");
 
-  async function fetchDbBranches(fk, preSelectSourceId) {
+  async function fetchDbBranches(fk, preSelectSourceId, preSelectBranchName) {
     if (!fk) { setDbBranches([]); return; }
     try {
       const { data } = await supabase
@@ -49,17 +64,28 @@ function NewPullRequestContent() {
         rows = allRows;
       }
       setDbBranches(rows);
-      // Pre-select source
-      if (preSelectSourceId && rows.some(b => b.id === preSelectSourceId)) {
-        setSourceBranchId(preSelectSourceId);
-      } else if (rows[0]) {
-        setSourceBranchId(rows[0].id);
+      if (rows.length > 0) {
+        const mainB = rows.find(b => b.name === "main") || rows[0];
+        setTargetBranchId(mainB.id);
+        setTargetBranch(mainB.name);
+
+        const nonMain = rows.filter(b => b.id !== mainB.id);
+        let srcB = null;
+        if (preSelectSourceId) {
+          srcB = rows.find(b => b.id === preSelectSourceId);
+        }
+        if (!srcB && preSelectBranchName) {
+          srcB = rows.find(b => b.name === preSelectBranchName);
+        }
+        if (!srcB) {
+          srcB = nonMain.length > 0 ? nonMain[nonMain.length - 1] : rows[0];
+        }
+        if (srcB) {
+          setSourceBranchId(srcB.id);
+          setSourceBranch(srcB.name);
+        }
       }
-      // Default target = main
-      const main = rows.find(b => b.name === "main");
-      setTargetBranchId(main ? main.id : (rows[1]?.id || rows[0]?.id || ""));
-    } catch (e) {
-      console.error("Error fetching branches:", e.message);
+    } catch {
       setDbBranches([]);
     }
   }
@@ -73,24 +99,20 @@ function NewPullRequestContent() {
         .order("created_at", { ascending: false })
         .limit(20);
       setNotifications(data || []);
-    } catch (e) {
+    } catch {
       setNotifications([]);
     }
   }
 
   async function markAllRead() {
     if (!user) return;
-    await supabase
-      .from("dvc_notifications")
-      .update({ read: true })
-      .eq("user_id", user.id)
-      .eq("read", false);
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    await supabase.from("dvc_notifications").update({ read: true }).eq("user_id", user.id).eq("read", false);
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   }
 
   async function markNotifRead(notifId) {
     await supabase.from("dvc_notifications").update({ read: true }).eq("id", notifId);
-    setNotifications((prev) => prev.map((n) => (n.id === notifId ? { ...n, read: true } : n)));
+    setNotifications(prev => prev.map(n => (n.id === notifId ? { ...n, read: true } : n)));
   }
 
   async function handleSignOut() {
@@ -100,133 +122,137 @@ function NewPullRequestContent() {
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/login"); return; }
-      setUser(user);
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) {
+          router.push("/login");
+          return;
+        }
+        setUser(currentUser);
+        await fetchNotifications(currentUser.id);
 
-      // Fetch unique repository names (frame_name || file_key) from commits and branches
-      const { data: commitsData } = await supabase
-        .from("dvc_commits")
-        .select("file_key, frame_name, page_name, author")
-        .order("timestamp", { ascending: false });
+        const paramFile = searchParams.get("fileKey") || searchParams.get("repo") || "";
+        const paramBranch = searchParams.get("branch") || "";
+        const paramBranchId = searchParams.get("sourceBranchId") || "";
 
-      const { data: branchesData } = await supabase
-        .from("dvc_branches")
-        .select("file_key");
+        // Fetch commits & branches to assemble comprehensive file & branch options
+        const [commitRes, branchRes] = await Promise.all([
+          supabase.from("dvc_commits").select("file_key, branch, frame_name").order("timestamp", { ascending: false }),
+          supabase.from("dvc_branches").select("id, name, file_key").order("created_at", { ascending: true }),
+        ]);
 
-      const commitRepos = (commitsData || []).map((d) => d.frame_name || d.file_key);
-      const branchRepos = (branchesData || []).map((b) => b.file_key);
-      const files = Array.from(new Set([...commitRepos, ...branchRepos])).filter(Boolean);
+        const commitRows = commitRes.data || [];
+        const dbBranchRows = branchRes.data || [];
 
-      const branches = Array.from(new Set((commitsData || []).map((d) => d.page_name))).filter(Boolean);
-      setAvailableFiles(files);
-      setAvailableBranches(branches.length ? branches : ["Page 1", "component-updates", "dark-mode-tokens"]);
+        const commitFiles = commitRows.map(c => c.file_key).filter(Boolean);
+        const branchFiles = dbBranchRows.map(b => b.file_key).filter(Boolean);
+        const commitBranches = commitRows.map(c => c.branch).filter(Boolean);
+        const dbBranchNames = dbBranchRows.map(b => b.name).filter(Boolean);
 
-      // Prefer fileKey from query params (e.g. ?fileKey=... or ?repo=...)
-      const qFileKey = searchParams.get("fileKey") || searchParams.get("repo");
-      const initialFile = qFileKey || files[0] || "";
-      setFileKey(initialFile);
-      if (branches[0]) setSourceBranch(branches[0]);
+        const allFiles = Array.from(new Set([
+          ...(paramFile ? [paramFile] : []),
+          ...commitFiles,
+          ...branchFiles,
+        ]));
 
-      // Fetch real branches for initial file
-      const qSourceBranchId = searchParams.get("sourceBranchId");
-      if (initialFile) await fetchDbBranches(initialFile, qSourceBranchId);
+        const allBranches = Array.from(new Set([
+          ...(paramBranch ? [paramBranch] : []),
+          ...commitBranches,
+          ...dbBranchNames,
+        ]));
 
-      await fetchNotifications(user.id);
-      setLoading(false);
+        setAvailableFiles(allFiles);
+        setAvailableBranches(allBranches);
+
+        const selectedFile = paramFile || allFiles[0] || "";
+        setFileKey(selectedFile);
+
+        const selectedSource = paramBranch || allBranches[0] || "";
+        setSourceBranch(selectedSource);
+
+        if (selectedFile) {
+          await fetchDbBranches(selectedFile, paramBranchId, paramBranch);
+        }
+      } catch (e) {
+        console.error("Error initializing PR form:", e.message);
+      } finally {
+        setLoading(false);
+      }
     }
     init();
-  }, [router]); // eslint-disable-line
+  }, [router, searchParams]);
 
   function addReviewer(emailToAdd) {
-    const targetEmail = (emailToAdd || reviewerInput).trim();
-    if (targetEmail && !reviewers.includes(targetEmail)) {
-      setReviewers([...reviewers, targetEmail]);
-      setReviewerInput("");
-    }
+    const val = (emailToAdd || reviewerInput).trim().toLowerCase();
+    if (!val) return;
+    if (reviewers.includes(val)) return;
+    setReviewers([...reviewers, val]);
+    if (!emailToAdd) setReviewerInput("");
   }
 
-  function removeReviewer(email) {
-    setReviewers(reviewers.filter((r) => r !== email));
+  function removeReviewer(emailToRemove) {
+    setReviewers(reviewers.filter(r => r !== emailToRemove));
   }
 
-  // Insert markdown helpers into description textarea
-  function insertMarkdown(tag) {
-    switch (tag) {
-      case "bold":
-        setDescription((prev) => prev + " **bold text** ");
-        break;
-      case "italic":
-        setDescription((prev) => prev + " *italic text* ");
-        break;
-      case "code":
-        setDescription((prev) => prev + " `code snippet` ");
-        break;
-      case "list":
-        setDescription((prev) => prev + "\n- Item 1\n- Item 2\n");
-        break;
-      default:
-        break;
-    }
+  function insertMarkdown(type) {
+    if (type === "bold") setDescription(prev => prev + " **bold text**");
+    if (type === "italic") setDescription(prev => prev + " *italic text*");
+    if (type === "code") setDescription(prev => prev + " `code`");
+    if (type === "list") setDescription(prev => prev + "\n- Item 1\n- Item 2");
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!title.trim()) {
-      setError("A pull request title is required.");
-      return;
-    }
-    if (!fileKey) {
-      setError("Please select a target design file.");
-      return;
-    }
     setError("");
+
+    if (!title.trim()) {
+      setError("Please provide a title for your pull request.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      // Resolve branch names from IDs for legacy columns
       const srcBranch = dbBranches.find(b => b.id === sourceBranchId);
       const tgtBranch = dbBranches.find(b => b.id === targetBranchId);
 
-      const { data, error: insertError } = await supabase
+      const payload = {
+        title: title.trim(),
+        description: description.trim(),
+        file_key: fileKey,
+        source_branch: srcBranch?.name || sourceBranch || "-",
+        target_branch: tgtBranch?.name || targetBranch || "main",
+        source_branch_id: sourceBranchId || null,
+        target_branch_id: targetBranchId || null,
+        status: "open",
+        author: user?.email?.split("@")[0] || "Designer",
+        user_id: user?.id,
+        created_at: new Date().toISOString(),
+      };
+
+      const { data: newPr, error: prErr } = await supabase
         .from("dvc_pull_requests")
-        .insert({
-          title: title.trim(),
-          description: description.trim(),
-          file_key: fileKey,
-          source_branch: srcBranch?.name || sourceBranch || "—",
-          target_branch: tgtBranch?.name || targetBranch || "main",
-          source_branch_id: sourceBranchId || null,
-          target_branch_id: targetBranchId || null,
-          status: "open",
-          author: user.email,
-          author_id: user.id,
-          reviewers: reviewers,
-        })
+        .insert(payload)
         .select()
         .single();
 
-      if (insertError) throw insertError;
+      if (prErr) throw prErr;
 
-      // Create notification for reviewers
-      if (reviewers.length > 0 && data?.id) {
-        await supabase.from("dvc_notifications").insert(
-          reviewers.map((r) => ({
-            user_email: r,
-            type: "review_requested",
-            title: "Review requested",
-            body: `${user.email} requested your review on: "${title.trim()}"`,
-            pr_id: data.id,
-            read: false,
-          }))
-        );
+      if (reviewers.length > 0) {
+        const notifInserts = reviewers.map(revEmail => ({
+          user_id: user?.id,
+          title: `Assigned PR: "${title.trim().slice(0, 40)}..."`,
+          message: `You were added as a reviewer for PR #${newPr.id.slice(0, 7)} by ${user?.email}`,
+          read: false,
+          created_at: new Date().toISOString(),
+        }));
+        await supabase.from("dvc_notifications").insert(notifInserts);
       }
 
-      router.push(`/dashboard/pulls/${data.id.slice(0, 6)}`);
-    } catch (e) {
-      console.error("Error creating PR:", e.message);
-      setError("Failed to create pull request. Please verify connection and try again.");
-    } finally {
+      router.push(`/dashboard/pulls/${newPr.id}`);
+    } catch (err) {
+      console.error("Error creating PR:", err.message);
+      setError(err.message || "Failed to create pull request. Please try again.");
       setSubmitting(false);
     }
   }
@@ -244,11 +270,9 @@ function NewPullRequestContent() {
           setIsSearchOpen={setIsSearchOpen}
           onSignOut={handleSignOut}
         />
-        <main className="grow p-6 md:p-8 w-full max-w-[1600px] mx-auto flex flex-col items-center justify-center min-h-125">
+        <main className="grow p-8 w-full max-w-[1600px] mx-auto flex flex-col items-center justify-center min-h-100">
           <div className="flex flex-col items-center gap-3">
-            <span className="material-symbols-outlined animate-spin text-[32px] text-black">
-              progress_activity
-            </span>
+            <Loader2 className="w-8 h-8 animate-spin text-black" />
             <p className="text-[13px] text-[#666666] font-medium">Preparing PR form...</p>
           </div>
         </main>
@@ -302,13 +326,13 @@ function NewPullRequestContent() {
             <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-6 shadow-xs flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[20px] text-black">call_split</span>
+                  <GitFork className="w-5 h-5 text-black" />
                   <h2 className="text-[16px] font-bold text-black font-sans tracking-tight">
                     Branch Comparison & Target File
                   </h2>
                 </div>
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                  <CheckCircle2 className="w-3.5 h-3.5" />
                   Able to merge
                 </span>
               </div>
@@ -318,17 +342,17 @@ function NewPullRequestContent() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[12px] font-semibold text-[#666666]">Merging:</span>
                   <span className="bg-white border border-[#c5c5c5] font-mono text-[11px] font-bold text-black px-2.5 py-1 rounded flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">call_split</span>
+                    <GitFork className="w-3.5 h-3.5" />
                     {dbBranches.find(b => b.id === sourceBranchId)?.name || sourceBranch || "(source)"}
                   </span>
                   <span className="text-[#888888] font-bold">into</span>
                   <span className="bg-white border border-[#c5c5c5] font-mono text-[11px] font-bold text-black px-2.5 py-1 rounded flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">call_merge</span>
+                    <GitMerge className="w-3.5 h-3.5" />
                     {dbBranches.find(b => b.id === targetBranchId)?.name || targetBranch || "main"}
                   </span>
                 </div>
                 <div className="text-[11px] text-[#777777]">
-                  Target File: <strong className="text-black">gitdesign/{fileKey || "local"}</strong>
+                  Target File: <strong className="text-black">oleidian/{fileKey || "local"}</strong>
                 </div>
               </div>
 
@@ -340,11 +364,16 @@ function NewPullRequestContent() {
                     Base Branch (Target)
                   </label>
                   <div className="relative">
-                    <span className="material-symbols-outlined text-[16px] text-[#888888] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">call_merge</span>
+                    <GitMerge className="w-4 h-4 text-[#888888] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     {dbBranches.length > 0 ? (
                       <select
                         value={targetBranchId}
-                        onChange={(e) => setTargetBranchId(e.target.value)}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          setTargetBranchId(id);
+                          const found = dbBranches.find(b => b.id === id);
+                          if (found) setTargetBranch(found.name);
+                        }}
                         className="w-full pl-9 pr-3 py-2 border border-[#c5c5c5] rounded-lg bg-white text-[12px] font-bold text-black outline-none focus:border-black transition-colors cursor-pointer appearance-none"
                       >
                         {dbBranches.map(b => (
@@ -370,11 +399,16 @@ function NewPullRequestContent() {
                     Compare Branch (Source)
                   </label>
                   <div className="relative">
-                    <span className="material-symbols-outlined text-[16px] text-[#888888] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">call_split</span>
+                    <GitFork className="w-4 h-4 text-[#888888] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     {dbBranches.length > 0 ? (
                       <select
                         value={sourceBranchId}
-                        onChange={(e) => setSourceBranchId(e.target.value)}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          setSourceBranchId(id);
+                          const found = dbBranches.find(b => b.id === id);
+                          if (found) setSourceBranch(found.name);
+                        }}
                         className="w-full pl-9 pr-3 py-2 border border-[#c5c5c5] rounded-lg bg-white text-[12px] font-bold text-black outline-none focus:border-black transition-colors cursor-pointer appearance-none"
                       >
                         {dbBranches.map(b => (
@@ -401,16 +435,16 @@ function NewPullRequestContent() {
                     Figma Design File
                   </label>
                   <div className="relative">
-                    <span className="material-symbols-outlined text-[16px] text-[#888888] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">folder_open</span>
+                    <FolderGit2 className="w-4 h-4 text-[#888888] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <select
                       value={fileKey}
-                      onChange={(e) => { setFileKey(e.target.value); fetchDbBranches(e.target.value, null); }}
+                      onChange={(e) => { setFileKey(e.target.value); fetchDbBranches(e.target.value, null, null); }}
                       className="w-full pl-9 pr-3 py-2 border border-[#c5c5c5] rounded-lg bg-white text-[12px] font-bold text-black outline-none focus:border-black transition-colors cursor-pointer appearance-none"
                     >
                       {availableFiles.map((f) => (
-                        <option key={f} value={f}>gitdesign/{f}</option>
+                        <option key={f} value={f}>oleidian/{f}</option>
                       ))}
-                      {availableFiles.length === 0 && <option value="">gitdesign/local</option>}
+                      {availableFiles.length === 0 && <option value="">Select a design file...</option>}
                     </select>
                   </div>
                 </div>
@@ -420,7 +454,7 @@ function NewPullRequestContent() {
             {/* Title & Description Form Card */}
             <div className="bg-white/70 backdrop-blur-lg border border-[#e5e5e5]/50 rounded-xl p-6 shadow-xs flex flex-col gap-4">
               <div className="flex items-center gap-2 border-b border-[#f0f0f2] pb-3">
-                <span className="material-symbols-outlined text-[20px] text-black">edit_note</span>
+                <FileEdit className="w-5 h-5 text-black" />
                 <h2 className="text-[16px] font-bold text-black font-sans tracking-tight">
                   Pull Request Details
                 </h2>
@@ -441,7 +475,7 @@ function NewPullRequestContent() {
                   value={title}
                   maxLength={100}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Update button component padding and border radius tokens"
+                  placeholder="e.g. Merge feature-branch into main"
                   className="px-3.5 py-2.5 border border-[#c5c5c5] focus:border-black rounded-lg bg-white text-[13px] font-semibold text-black placeholder-[#999999] outline-none focus:ring-1 focus:ring-black transition-all"
                   required
                 />
@@ -498,7 +532,7 @@ function NewPullRequestContent() {
                   className="px-3.5 py-2.5 border border-[#c5c5c5] focus:border-black rounded-lg bg-white text-[13px] text-black placeholder-[#999999] outline-none focus:ring-1 focus:ring-black transition-all resize-none font-sans leading-relaxed"
                 />
                 <p className="text-[11px] text-[#888888]">
-                  Markdown formatting supported — use <code className="font-mono text-black bg-[#f0f0f2] px-1 rounded">**bold**</code>, <code className="font-mono text-black bg-[#f0f0f2] px-1 rounded">*italic*</code>, or bullet lists.
+                  Markdown formatting supported - use <code className="font-mono text-black bg-[#f0f0f2] px-1 rounded">**bold**</code>, <code className="font-mono text-black bg-[#f0f0f2] px-1 rounded">*italic*</code>, or bullet lists.
                 </p>
               </div>
             </div>
@@ -506,7 +540,7 @@ function NewPullRequestContent() {
             {/* Error Banner */}
             {error && (
               <div className="flex items-center gap-2 text-[12px] font-bold text-red-700 bg-red-50 border border-red-200 rounded-xl p-4">
-                <span className="material-symbols-outlined text-[18px]">error</span>
+                <AlertCircle className="w-4.5 h-4.5 shrink-0 text-red-600" />
                 {error}
               </div>
             )}
@@ -517,7 +551,7 @@ function NewPullRequestContent() {
                 href="/dashboard/pulls"
                 className="text-[13px] font-bold text-[#666666] hover:text-black transition-colors flex items-center gap-1"
               >
-                <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                <ArrowLeft className="w-4 h-4" />
                 Cancel & Return
               </Link>
 
@@ -528,14 +562,12 @@ function NewPullRequestContent() {
               >
                 {submitting ? (
                   <>
-                    <span className="material-symbols-outlined animate-spin text-[16px]">
-                      progress_activity
-                    </span>
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     Creating Pull Request...
                   </>
                 ) : (
                   <>
-                    <span className="material-symbols-outlined text-[16px]">merge_type</span>
+                    <GitPullRequest className="w-4 h-4" />
                     Create Pull Request
                   </>
                 )}
@@ -549,7 +581,7 @@ function NewPullRequestContent() {
             <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-sm flex flex-col gap-4">
               <div className="flex items-center justify-between border-b border-[#f0f0f2] pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[20px] text-black">group_add</span>
+                  <UserPlus className="w-5 h-5 text-black" />
                   <h2 className="text-[16px] font-bold text-black font-sans tracking-tight">
                     Reviewers
                   </h2>
@@ -563,9 +595,7 @@ function NewPullRequestContent() {
               <div className="flex flex-col gap-2">
                 <div className="flex gap-2">
                   <div className="relative grow">
-                    <span className="material-symbols-outlined text-[16px] text-[#888888] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      person_add
-                    </span>
+                    <UserPlus className="w-4 h-4 text-[#888888] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="email"
                       value={reviewerInput}
@@ -588,25 +618,6 @@ function NewPullRequestContent() {
                     Add
                   </button>
                 </div>
-
-                {/* Team Quick Suggestions */}
-                <div className="flex flex-col gap-1 pt-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#888888]">
-                    Suggested Reviewers
-                  </span>
-                  <div className="flex flex-wrap gap-1.5 pt-0.5">
-                    {["design-lead@gitdesign.com", "reviewer@company.com"].map((email) => (
-                      <button
-                        key={email}
-                        type="button"
-                        onClick={() => addReviewer(email)}
-                        className="text-[10px] font-semibold text-[#555555] hover:text-black bg-[#f0f0f2] hover:bg-[#e4e4e8] px-2 py-1 rounded-md border border-[#e0e0e4] cursor-pointer transition-colors"
-                      >
-                        + {email.split("@")[0]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
 
               {/* Reviewers List Chips */}
@@ -628,7 +639,7 @@ function NewPullRequestContent() {
                         onClick={() => removeReviewer(r)}
                         className="text-[#888888] hover:text-black cursor-pointer shrink-0 ml-1"
                       >
-                        <span className="material-symbols-outlined text-[14px]">close</span>
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
@@ -639,26 +650,20 @@ function NewPullRequestContent() {
             {/* Design PR Guidelines Card */}
             <div className="bg-white/80 backdrop-blur-md border border-[#e5e5e5]/60 rounded-xl p-6 shadow-sm flex flex-col gap-3">
               <div className="flex items-center gap-2 text-black font-bold text-[14px]">
-                <span className="material-symbols-outlined text-[18px] text-amber-500">lightbulb</span>
+                <Lightbulb className="w-4.5 h-4.5 text-amber-500" />
                 Design Review Best Practices
               </div>
               <ul className="text-[12px] text-[#666666] flex flex-col gap-2 leading-relaxed">
                 <li className="flex items-start gap-2">
-                  <span className="material-symbols-outlined text-[14px] text-emerald-600 shrink-0 mt-0.5">
-                    check
-                  </span>
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                   <span>Summarize modified component tokens (fills, strokes, corner radius).</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="material-symbols-outlined text-[14px] text-emerald-600 shrink-0 mt-0.5">
-                    check
-                  </span>
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                   <span>Assign at least one Design Lead for visual approval.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="material-symbols-outlined text-[14px] text-emerald-600 shrink-0 mt-0.5">
-                    check
-                  </span>
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                   <span>Verify that node counts match target Figma frames.</span>
                 </li>
               </ul>
