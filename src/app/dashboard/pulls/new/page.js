@@ -135,9 +135,18 @@ function NewPullRequestContent() {
         const paramBranch = searchParams.get("branch") || "";
         const paramBranchId = searchParams.get("sourceBranchId") || "";
 
-        // Fetch commits & branches to assemble comprehensive file & branch options
+        // Fetch commits & branches to assemble comprehensive file & branch options (user scoped)
+        let cQuery = supabase.from("dvc_commits").select("file_key, branch, frame_name").order("timestamp", { ascending: false });
+        if (currentUser.id && currentUser.email) {
+          cQuery = cQuery.or(`author_id.eq.${currentUser.id},author.eq.${currentUser.email}`);
+        } else if (currentUser.id) {
+          cQuery = cQuery.eq("author_id", currentUser.id);
+        } else if (currentUser.email) {
+          cQuery = cQuery.eq("author", currentUser.email);
+        }
+
         const [commitRes, branchRes] = await Promise.all([
-          supabase.from("dvc_commits").select("file_key, branch, frame_name").order("timestamp", { ascending: false }),
+          cQuery,
           supabase.from("dvc_branches").select("id, name, file_key").order("created_at", { ascending: true }),
         ]);
 

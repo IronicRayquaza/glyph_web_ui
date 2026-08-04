@@ -45,12 +45,23 @@ export default function PullRequestsPage() {
   const [activeFilter, setActiveFilter] = useState("open");
   const [searchQuery, setSearchQuery] = useState("");
 
-  async function fetchPulls() {
+  async function fetchPulls(currentUser) {
     try {
-      const { data, error } = await supabase
+      if (!currentUser) return;
+      let query = supabase
         .from("dvc_pull_requests")
         .select("*, dvc_pr_reviews(id, action), dvc_pr_comments(id)")
         .order("created_at", { ascending: false });
+
+      if (currentUser.id && currentUser.email) {
+        query = query.or(`author_id.eq.${currentUser.id},author.eq.${currentUser.email}`);
+      } else if (currentUser.id) {
+        query = query.eq("author_id", currentUser.id);
+      } else if (currentUser.email) {
+        query = query.eq("author", currentUser.email);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setPulls(data || []);
     } catch (e) {
@@ -69,7 +80,7 @@ export default function PullRequestsPage() {
         return;
       }
       setUser(u);
-      await fetchPulls();
+      await fetchPulls(u);
     }
     init();
   }, [router]);

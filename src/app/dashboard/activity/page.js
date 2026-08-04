@@ -67,24 +67,46 @@ export default function ActivityPage() {
   const [selectedRepo, setSelectedRepo] = useState("__all__");
   const [searchQuery, setSearchQuery] = useState("");
 
-  async function fetchCommits() {
+  async function fetchCommits(currentUser) {
     try {
-      const { data } = await supabase
+      if (!currentUser) return;
+      let query = supabase
         .from("dvc_commits")
-        .select("id, file_key, message, author, timestamp, node_count, snapshot_url")
+        .select("id, file_key, message, author, author_id, timestamp, node_count, snapshot_url")
         .order("timestamp", { ascending: false });
+
+      if (currentUser.id && currentUser.email) {
+        query = query.or(`author_id.eq.${currentUser.id},author.eq.${currentUser.email}`);
+      } else if (currentUser.id) {
+        query = query.eq("author_id", currentUser.id);
+      } else if (currentUser.email) {
+        query = query.eq("author", currentUser.email);
+      }
+
+      const { data } = await query;
       setCommits(data || []);
     } catch (e) {
       setCommits([]);
     }
   }
 
-  async function fetchPullRequests() {
+  async function fetchPullRequests(currentUser) {
     try {
-      const { data } = await supabase
+      if (!currentUser) return;
+      let query = supabase
         .from("dvc_pull_requests")
-        .select("id, title, status, author, file_key, source_branch, target_branch, created_at, updated_at")
+        .select("id, title, status, author, author_id, file_key, source_branch, target_branch, created_at, updated_at")
         .order("created_at", { ascending: false });
+
+      if (currentUser.id && currentUser.email) {
+        query = query.or(`author_id.eq.${currentUser.id},author.eq.${currentUser.email}`);
+      } else if (currentUser.id) {
+        query = query.eq("author_id", currentUser.id);
+      } else if (currentUser.email) {
+        query = query.eq("author", currentUser.email);
+      }
+
+      const { data } = await query;
       setPullRequests(data || []);
     } catch (e) {
       setPullRequests([]);
@@ -148,8 +170,8 @@ export default function ActivityPage() {
       }
       setUser(user);
       await Promise.all([
-        fetchCommits(),
-        fetchPullRequests(),
+        fetchCommits(user),
+        fetchPullRequests(user),
         fetchReviews(),
         fetchNotifications(user.id),
       ]);

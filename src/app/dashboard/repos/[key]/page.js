@@ -118,21 +118,41 @@ export default function RepositoryDetailPage() {
         }
         setUser(currentUser);
 
-        // Fetch commits for this repository frame or file key
-        const { data: allCommitRows } = await supabase
+        // Fetch commits for this repository frame or file key (user scoped)
+        let commitQuery = supabase
           .from("dvc_commits")
           .select("*")
           .order("timestamp", { ascending: false });
+
+        if (currentUser.id && currentUser.email) {
+          commitQuery = commitQuery.or(`author_id.eq.${currentUser.id},author.eq.${currentUser.email}`);
+        } else if (currentUser.id) {
+          commitQuery = commitQuery.eq("author_id", currentUser.id);
+        } else if (currentUser.email) {
+          commitQuery = commitQuery.eq("author", currentUser.email);
+        }
+
+        const { data: allCommitRows } = await commitQuery;
 
         const commitRows = (allCommitRows || []).filter(
           (c) => (c.frame_name || c.file_key) === repoKey || c.file_key === repoKey
         );
 
-        // Fetch pull requests for this repository frame or file key
-        const { data: allPrRows } = await supabase
+        // Fetch pull requests for this repository frame or file key (user scoped)
+        let prQuery = supabase
           .from("dvc_pull_requests")
           .select("*")
           .order("created_at", { ascending: false });
+
+        if (currentUser.id && currentUser.email) {
+          prQuery = prQuery.or(`author_id.eq.${currentUser.id},author.eq.${currentUser.email}`);
+        } else if (currentUser.id) {
+          prQuery = prQuery.eq("author_id", currentUser.id);
+        } else if (currentUser.email) {
+          prQuery = prQuery.eq("author", currentUser.email);
+        }
+
+        const { data: allPrRows } = await prQuery;
 
         const prRows = (allPrRows || []).filter(
           (pr) => (pr.frame_name || pr.file_key) === repoKey || pr.file_key === repoKey

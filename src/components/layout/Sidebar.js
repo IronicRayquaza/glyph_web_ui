@@ -30,15 +30,38 @@ export default function Sidebar() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const { data: prs } = await supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        let prQuery = supabase
           .from("dvc_pull_requests")
           .select("id")
           .in("status", ["open", "approved", "changes_requested"]);
+
+        if (user.id && user.email) {
+          prQuery = prQuery.or(`author_id.eq.${user.id},author.eq.${user.email}`);
+        } else if (user.id) {
+          prQuery = prQuery.eq("author_id", user.id);
+        } else if (user.email) {
+          prQuery = prQuery.eq("author", user.email);
+        }
+
+        const { data: prs } = await prQuery;
         if (prs) setUnreadPrCount(prs.length);
 
-        const { data: commits } = await supabase
+        let commitQuery = supabase
           .from("dvc_commits")
           .select("frame_name, file_key");
+
+        if (user.id && user.email) {
+          commitQuery = commitQuery.or(`author_id.eq.${user.id},author.eq.${user.email}`);
+        } else if (user.id) {
+          commitQuery = commitQuery.eq("author_id", user.id);
+        } else if (user.email) {
+          commitQuery = commitQuery.eq("author", user.email);
+        }
+
+        const { data: commits } = await commitQuery;
         if (commits) {
           const keys = Array.from(new Set(commits.map((c) => c.frame_name || c.file_key).filter(Boolean)));
           setRepoKeys(keys);
