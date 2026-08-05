@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
+import Lenis from "lenis";
 import {
   FolderGit2,
   GitBranch,
@@ -20,7 +21,9 @@ import {
   Layers,
   Star,
   ChevronUp,
+  Download,
 } from "lucide-react";
+import Image from "next/image";
 
 // Corner Dot Pins for Section Boundary Intersections
 function CornerPins() {
@@ -34,6 +37,44 @@ function CornerPins() {
   );
 }
 
+// Separate FAQ Data Array
+const FAQ_DATA = [
+  {
+    q: "Do I need to know Git to use this?",
+    a: "No. If you've ever saved a file, you already know everything you need.",
+  },
+  {
+    q: "Does this replace Figma's version history?",
+    a: "It builds on top of it. You get structure - repos, branches, pull requests - instead of one long unlabeled timeline.",
+  },
+  {
+    q: "Will this slow down my Figma file?",
+    a: "No. Oleidian syncs in the background through the plugin; it doesn't touch how your file performs.",
+  },
+  {
+    q: "Can my whole team use it, or just me?",
+    a: "Built for teams. Branches, pull requests, and reviewer comments only make sense with more than one person in the loop - though it works great solo too.",
+  },
+  {
+    q: "Is it free?",
+    a: "The plugin is free to install.",
+  },
+];
+
+// Schema.org FAQPage JSON-LD Markup
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_DATA.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.a,
+    },
+  })),
+};
+
 export default function LandingPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -45,6 +86,25 @@ export default function LandingPage() {
 
   // Feature Showcase Active Tab
   const [activeFeatureTab, setActiveFeatureTab] = useState(0);
+
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+    });
+
+    function raf(time) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+
+    requestAnimationFrame(raf);
+
+    return () => {
+      lenis.destroy();
+    };
+  }, []);
 
   useEffect(() => {
     async function checkAuth() {
@@ -150,6 +210,11 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#0f172a] font-sans antialiased selection:bg-black selection:text-white flex flex-col relative">
+      {/* Schema.org FAQPage JSON-LD Markup for Search Engines */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
       {/* ── BACKGROUND ATMOSPHERIC LIGHTING / VIDEO ── */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <video
@@ -165,12 +230,11 @@ export default function LandingPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-250 h-125 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(0,0,0,0.07),rgba(255,255,255,0))]" />
       </div>
 
-      {/* ── 1. FLOATING PILL NAVIGATION HEADER ── */}
-      <header className="sticky top-4 z-50 max-w-310 mx-auto px-4 w-full">
+      <header className="sticky top-4 z-50 max-w-310 mx-auto w-full">
         <nav className="bg-white/85 backdrop-blur-xl border border-slate-200/90 rounded-full px-5 py-2.5 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center font-bold text-sm shadow-xs group-hover:scale-105 transition-transform">
-              <FolderGit2 className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-lg overflow-hidden shadow-xs group-hover:scale-105 transition-transform border border-black/10">
+              <Image width={24} height={24} src="/logo.svg" alt="Oleidian Logo" className="w-full h-full object-cover" />
             </div>
             <span className="font-bold text-[16px] tracking-tight font-sans text-slate-950">
               Oleidian
@@ -216,7 +280,7 @@ export default function LandingPage() {
                   href="#plugin"
                   className="bg-black hover:bg-slate-800 text-white rounded-full px-5 py-2 text-[12px] font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-white" />
+                  <Download className="w-3.5 h-3.5 text-white" />
                   <span>Install Plugin</span>
                 </a>
               </>
@@ -226,32 +290,20 @@ export default function LandingPage() {
       </header>
 
       {/* ── MAIN CONTENT CONTAINER WITH DASHED BOUNDARY BORDERS ── */}
-      <main className="max-w-[1240px] mx-auto w-full border-x border-dashed border-slate-300/80 bg-white/40 backdrop-blur-2xs relative my-6">
+      <main className="max-w-310 mx-auto w-full border-x border-dashed border-slate-300/80 bg-white/40 backdrop-blur-2xs relative my-6">
 
         {/* ── 2. HERO SECTION ── */}
         <section className="relative border-b border-dashed border-slate-300/80 py-16 md:py-24 px-6 md:px-12 flex flex-col items-center text-center">
           <CornerPins />
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-slate-200 text-[12px] font-semibold text-slate-700 mb-6 shadow-2xs hover:shadow-xs transition-shadow"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Now available as a free Figma plugin</span>
-            <span className="text-slate-300">|</span>
-            <span className="text-slate-900 font-bold">Figma &amp; Flowstep Ready</span>
-          </motion.div>
-
           <motion.h1
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-[38px] sm:text-[56px] md:text-[68px] font-bold text-slate-950 tracking-tight leading-[1.05] max-w-[960px] mb-6 font-sans"
+            className="text-[38px] sm:text-[56px] md:text-[68px] font-bold text-slate-950 tracking-tight leading-[1.05] max-w-240 mb-6 font-sans"
           >
             Version control{" "}
-            <span className="inline-flex items-center px-4 py-1 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-black text-white border border-slate-950 font-mono text-[32px] sm:text-[46px] md:text-[54px] align-middle shadow-md hover:scale-105 transition-transform cursor-default">
+            <span className="inline-flex items-center px-4 py-1 rounded-2xl bg-linear-to-r from-slate-950 via-slate-900 to-black text-white border border-slate-950 font-mono text-[32px] sm:text-[46px] md:text-[54px] align-middle shadow-md hover:scale-105 transition-transform cursor-default">
               {"{Git}"}
             </span>{" "}
             for Figma &amp; design teams.
@@ -280,7 +332,7 @@ export default function LandingPage() {
               href="#plugin"
               className="w-full sm:w-auto bg-black hover:bg-slate-800 text-white font-bold text-[14px] px-8 py-4 rounded-full transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2.5 cursor-pointer active:scale-95"
             >
-              <Sparkles className="w-4 h-4 text-white" />
+              <Download className="w-4 h-4 text-white" />
               <span>Install Figma Plugin</span>
             </a>
             <a
@@ -717,7 +769,7 @@ export default function LandingPage() {
                 Figma Plugin Spotlight
               </span>
               <h2 className="text-[32px] sm:text-[44px] font-bold tracking-tight leading-tight font-sans text-white">
-                Lives right inside Figma. Because that’s where design actually happens.
+                Lives right inside Figma. Because that&apos;s where design actually happens.
               </h2>
               <p className="text-[16px] text-slate-300 leading-relaxed">
                 Oleidian isn’t a separate tool you have to remember to update. Push and pull straight from the Figma plugin panel - your repo stays in sync with your canvas, automatically.
@@ -727,7 +779,7 @@ export default function LandingPage() {
                   href="#plugin"
                   className="inline-flex items-center gap-2.5 bg-white text-black hover:bg-slate-200 font-bold text-[14px] px-7 py-3.5 rounded-full transition-all shadow-md cursor-pointer active:scale-95"
                 >
-                  <Sparkles className="w-4 h-4 text-black" />
+                  <Download className="w-4 h-4 text-black" />
                   <span>Get the Plugin - it&apos;s free</span>
                 </a>
               </div>
@@ -763,7 +815,7 @@ export default function LandingPage() {
               Comparison
             </span>
             <h2 className="text-[32px] sm:text-[42px] font-bold text-slate-950 tracking-tight mt-3 mb-3 font-sans">
-              This isn’t Figma’s version history.
+              This isn&apos;t Figma&apos;s version history.
             </h2>
             <p className="text-[16px] text-slate-600 max-w-150 mx-auto">
               See how Oleidian compares to native file history:
@@ -834,28 +886,7 @@ export default function LandingPage() {
           </div>
 
           <div className="flex flex-col gap-4 max-w-215 mx-auto">
-            {[
-              {
-                q: "Do I need to know Git to use this?",
-                a: "No. If you've ever saved a file, you already know everything you need.",
-              },
-              {
-                q: "Does this replace Figma's version history?",
-                a: "It builds on top of it. You get structure - repos, branches, pull requests - instead of one long unlabeled timeline.",
-              },
-              {
-                q: "Will this slow down my Figma file?",
-                a: "No. Oleidian syncs in the background through the plugin; it doesn't touch how your file performs.",
-              },
-              {
-                q: "Can my whole team use it, or just me?",
-                a: "Built for teams. Branches, pull requests, and reviewer comments only make sense with more than one person in the loop - though it works great solo too.",
-              },
-              {
-                q: "Is it free?",
-                a: "The plugin is free to install.",
-              },
-            ].map((item, idx) => (
+            {FAQ_DATA.map((item, idx) => (
               <div
                 key={idx}
                 className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs transition-colors"
@@ -891,18 +922,14 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* ── 12 & 13. FULL-WIDTH LIGHT THEME FOOTER WITH INTEGRATED CTA ── */}
       <footer className="w-full bg-[#f8fafc] border-t border-dashed border-slate-300/80 relative text-slate-800">
-        {/* Inner Content Container matching max-w-[1240px] with continuous border-x lines */}
         <div className="max-w-310 mx-auto px-6 md:px-12 flex flex-col gap-16 relative border-x border-dashed border-slate-300/80 py-8">
           <CornerPins />
 
-          {/* Integrated CTA Hero Card */}
           <div className="bg-white border border-dashed border-slate-300 rounded-3xl p-8 sm:p-14 text-center shadow-xl flex flex-col items-center gap-6 relative">
             <CornerPins />
 
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-700">
-              <Sparkles className="w-3.5 h-3.5 text-black" />
               <span>Ready for Figma Version Control?</span>
             </div>
 
@@ -918,7 +945,7 @@ export default function LandingPage() {
                 href="#plugin"
                 className="bg-black hover:bg-slate-800 text-white font-bold text-[14px] px-8 py-4 rounded-full transition-all shadow-md flex items-center gap-2.5 cursor-pointer active:scale-95"
               >
-                <Sparkles className="w-4 h-4 text-white" />
+                <Download className="w-4 h-4 text-white" />
                 <span>Install Figma Plugin</span>
               </a>
               <Link
@@ -936,8 +963,8 @@ export default function LandingPage() {
             {/* Brand Information */}
             <div className="flex flex-col gap-4 max-w-85">
               <Link href="/" className="flex items-center gap-2.5 group">
-                <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center font-bold text-sm shadow-xs group-hover:scale-105 transition-transform">
-                  <FolderGit2 className="w-4 h-4 text-white" />
+                <div className="w-8 h-8 rounded-lg overflow-hidden shadow-xs group-hover:scale-105 transition-transform border border-black/10">
+                  <Image width={36} height={36} src="/logo.svg" alt="Oleidian Logo" className="w-full h-full object-cover" />
                 </div>
                 <span className="font-bold text-[18px] tracking-tight font-sans text-slate-950">
                   Oleidian
@@ -946,16 +973,10 @@ export default function LandingPage() {
               <p className="text-[13px] text-slate-500 leading-relaxed font-normal">
                 Git version control, rebuilt for Figma files and modern design teams. Track commits, branch iterations, and review pull requests seamlessly.
               </p>
-
-              {/* Live Status Badge */}
-              <div className="inline-flex items-center gap-2 text-[11px] font-bold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-full w-fit shadow-2xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Plugin &amp; Web App: Operational</span>
-              </div>
             </div>
 
             {/* Relevant Links Columns */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 gap-12 text-[13px]">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 sm:gap-12 text-[13px]">
               <div className="flex flex-col gap-3">
                 <span className="font-bold text-slate-950 uppercase text-[11px] tracking-wider font-mono">
                   Product
@@ -994,13 +1015,25 @@ export default function LandingPage() {
                   Sign In / Register
                 </Link>
               </div>
+
+              <div className="flex flex-col gap-3">
+                <span className="font-bold text-slate-950 uppercase text-[11px] tracking-wider font-mono">
+                  Legal &amp; Policy
+                </span>
+                <Link href="/privacy" className="text-slate-600 hover:text-black font-medium transition-colors">
+                  Privacy Policy
+                </Link>
+                <Link href="/terms" className="text-slate-600 hover:text-black font-medium transition-colors">
+                  Terms &amp; Conditions
+                </Link>
+              </div>
             </div>
           </div>
 
           {/* Copyright & Social Strip */}
           <div className="border-t border-slate-200/90 pt-6 flex flex-col sm:flex-row justify-between items-center text-[12px] text-slate-500 gap-4">
             <span>&copy; {new Date().getFullYear()} Oleidian. Built for designers.</span>
-            <div className="flex items-center gap-6 font-medium">
+            <div className="flex items-center gap-6 font-medium flex-wrap">
               <a href="https://figma.com" target="_blank" rel="noreferrer" className="hover:text-black transition-colors">
                 Figma Community
               </a>

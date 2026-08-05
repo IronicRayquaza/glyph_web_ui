@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { BsGithub } from "react-icons/bs";
 import { FcGoogle } from "react-icons/fc";
 import { Loader2 } from "lucide-react";
+import Image from "next/image";
 
 function LoginForm() {
   const router = useRouter();
@@ -192,11 +193,8 @@ export default function LoginPage() {
       <div className="relative z-10 flex flex-col items-center w-full max-w-120">
         {/* Oleidian Branding Header */}
         <div className="flex flex-col items-center gap-base mb-lg text-center select-none">
-          <div className="flex items-center gap-xs text-headline-xl font-headline-xl font-bold tracking-tight text-black">
-            {/* Logo SVG matching reference style */}
-            <svg className="w-8 h-8 inline-block text-black" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h5m8 0h5M12 8a4 4 0 110 8 4 4 0 010-8z" />
-            </svg>
+          <div className="flex items-center gap-2.5 text-headline-xl font-headline-xl font-bold tracking-tight text-black">
+            <Image width={36} height={36} src="/logo.svg" alt="Oleidian Logo" className="w-9 h-9 rounded-lg object-contain shadow-xs" />
             <span className="font-sans">Oleidian</span>
           </div>
           <p className="text-[12px] text-[#555555] tracking-wide uppercase font-medium">

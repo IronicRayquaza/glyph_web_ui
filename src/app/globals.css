@@ -67,15 +67,15 @@
   --spacing-xl: 80px;
 
   /* Fonts */
-  --font-sans: "Inter", sans-serif;
-  --font-body-md: "Inter", sans-serif;
-  --font-headline-lg: "Inter", sans-serif;
-  --font-code-md: "Geist", monospace;
-  --font-body-sm: "Inter", sans-serif;
-  --font-label-md: "Geist", sans-serif;
-  --font-headline-md: "Inter", sans-serif;
-  --font-body-lg: "Inter", sans-serif;
-  --font-headline-xl: "Inter", sans-serif;
+  --font-sans: var(--font-geist), var(--font-inter), sans-serif;
+  --font-body-md: var(--font-geist), var(--font-inter), sans-serif;
+  --font-headline-lg: var(--font-geist), var(--font-inter), sans-serif;
+  --font-code-md: var(--font-geist), monospace;
+  --font-body-sm: var(--font-geist), var(--font-inter), sans-serif;
+  --font-label-md: var(--font-geist), sans-serif;
+  --font-headline-md: var(--font-geist), var(--font-inter), sans-serif;
+  --font-body-lg: var(--font-geist), var(--font-inter), sans-serif;
+  --font-headline-xl: var(--font-geist), var(--font-inter), sans-serif;
 
   /* Custom Marquee Animation */
   @keyframes marquee {
@@ -172,3 +172,23 @@ body {
   background-size: 28px 28px;
 }
 
+/* Lenis Smooth Scroll Styles */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}

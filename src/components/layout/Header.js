@@ -4,6 +4,7 @@ import { useRef, useEffect } from "react";
 import Link from "next/link";
 import NotificationsDropdown from "@/components/dashboard/NotificationsDropdown";
 import { Search, Bell, Plus } from "lucide-react";
+import Image from "next/image";
 
 export default function Header({
   user,
@@ -33,8 +34,9 @@ export default function Header({
   return (
     <header className="bg-white/70 backdrop-blur-lg border-b border-[#e5e5e5]/40 h-16 flex justify-between items-center px-6 sticky top-0 z-20">
       <div className="flex items-center gap-8 grow max-w-4xl">
-        <Link href="/" className="text-[18px] font-bold font-sans tracking-tight text-black select-none">
-          Oleidian
+        <Link href="/" className="text-[18px] font-bold font-sans tracking-tight text-black select-none flex items-center gap-2.5">
+          <Image width={36} height={36} src="/logo.svg" alt="Oleidian Logo" className="w-7 h-7 rounded-md object-contain" />
+          <span>Oleidian</span>
         </Link>
 
         {/* Small GitHub-style Search Trigger Button */}
@@ -65,7 +67,7 @@ export default function Header({
           >
             <Bell className="w-4.5 h-4.5" />
             {unreadCount > 0 && (
-              <span className="absolute top-[6px] right-[6px] w-2 h-2 bg-black rounded-full border-2 border-white" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-black rounded-full border-2 border-white" />
             )}
           </button>
 

@@ -13,6 +13,7 @@ import {
   BookOpen,
   Settings,
 } from "lucide-react";
+import Image from "next/image";
 
 const NAV_ITEMS = [
   { id: "Dashboard", Icon: LayoutGrid, href: "/dashboard", enabled: true },
@@ -77,8 +78,8 @@ export default function Sidebar() {
     <aside className="w-60 bg-white/70 backdrop-blur-lg border-r border-[#d5d5d5]/40 flex flex-col shrink-0 z-20 h-screen sticky top-0 font-sans">
       {/* Profile / App Branding Header */}
       <div className="p-4 border-b border-[#d5d5d5]/40 flex items-center gap-3">
-        <div className="w-9 h-9 bg-white/80 border border-[#c5c5c5]/40 rounded-lg flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
-          <BookOpen className="w-5 h-5 text-black stroke-[2.2]" />
+        <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-xs border border-black/10">
+          <Image width={36} height={36} src="/logo.svg" alt="Oleidian Logo" className="w-full h-full object-cover" />
         </div>
         <div className="flex flex-col truncate">
           <span className="text-[13px] font-bold text-black tracking-tight leading-snug">Oleidian</span>

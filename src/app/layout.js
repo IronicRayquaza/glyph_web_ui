@@ -1,12 +1,28 @@
+import { Geist, Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
+
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+});
 
 export const metadata = {
   title: "Oleidian - Git for Figma. Version Control for Designers.",
   description: "Oleidian brings repos, commits, branches, and pull requests to Figma. Track every design change, review with structured pull requests, and never lose a version again. Free Figma plugin.",
   icons: {
-    icon: "/favicon.png?v=2",
-    shortcut: "/favicon.png?v=2",
-    apple: "/favicon.png?v=2",
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
   },
   openGraph: {
     title: "Oleidian - Git for Figma. Version Control for Designers.",
@@ -20,16 +36,12 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="antialiased">
+    <html lang="en" className={`${geist.variable} ${inter.variable} ${playfair.variable} antialiased`}>
       <head>
-        <link rel="icon" href="/favicon.png?v=2" type="image/png" />
-        <link rel="shortcut icon" href="/favicon.ico?v=2" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Geist:wght@400;500&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+        <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+        <link rel="shortcut icon" href="/logo.svg" />
       </head>
-      <body className="min-h-screen flex flex-col text-black">
+      <body className={`${geist.className} min-h-screen flex flex-col text-black`}>
         {children}
       </body>
     </html>
